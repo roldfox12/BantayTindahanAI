@@ -1,6 +1,6 @@
-import { View, Text, FlatList, Button, TextInput, Alert, Dimensions, ScrollView, StyleSheet, TouchableOpacity, Modal, Switch, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, FlatList, Button, TextInput, Alert, Dimensions, ScrollView, StyleSheet, TouchableOpacity, Modal, Switch, KeyboardAvoidingView, Platform, ActivityIndicator, Image } from 'react-native';
 import { useState, useEffect } from 'react';
-import { LineChart, PieChart } from 'react-native-chart-kit';
+import { LineChart, PieChart, BarChart } from 'react-native-chart-kit';
 import { Picker } from '@react-native-picker/picker'; // Keep for compatibility if needed elsewhere
 import { MaterialIcons } from '@expo/vector-icons';
 
@@ -9,7 +9,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, addDoc, getDocs, setDoc, doc, deleteDoc, updateDoc, onSnapshot, initializeFirestore, persistentLocalCache, disableNetwork, enableNetwork } from "firebase/firestore";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, initializeAuth, getReactNativePersistence } from "firebase/auth";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, initializeAuth, getReactNativePersistence, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
 // --- Configuration and Initialization (Keep these at the top) ---
@@ -171,25 +171,47 @@ const fetchAnalyticsFromCloud = async (userId, setAnalytics, setSalesHistory, se
             }
         });
 
-        // Financial Calculation (Real Data)
-        let totalRevenue = 0;
-        let totalCOGS = 0; // Cost of Goods Sold
-
-        Object.entries(salesCount).forEach(([id, count]) => {
-            const item = itemsMap[id];
-            if (item) {
-                totalRevenue += count * item.price;
-                totalCOGS += count * item.cost;
-            }
-        });
-
         // Fetch Operational Expenses
         const expensesSnap = await getDocs(collection(db, 'users', userId, 'expenses'));
         const expenseList = expensesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         expenseList.sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date (newest first)
-        const totalOperationalExpenses = expenseList.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        
+        // Financial Calculation (Cash Flow Basis)
+        let totalRevenue = 0;
+        const transactionList = [];
 
-        const totalExpenses = totalCOGS + totalOperationalExpenses;
+        // 1. Process Sales (Revenue)
+        salesData.forEach(sale => {
+            const item = itemsMap[sale.itemId];
+            if (item) {
+                const amount = sale.qty * item.price;
+                totalRevenue += amount;
+                transactionList.push({
+                    id: 'sale-' + Math.random(), // Unique ID for list
+                    date: sale.date,
+                    description: `Sold ${sale.qty} ${item.name}`,
+                    amount: amount,
+                    type: 'income'
+                });
+            }
+        });
+
+        // 2. Process Expenses (OpEx + Restocks)
+        const totalExpenses = expenseList.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        
+        expenseList.forEach(exp => {
+            transactionList.push({
+                id: exp.id,
+                date: exp.date,
+                description: exp.description,
+                amount: -Number(exp.amount), // Negative for display
+                type: 'expense'
+            });
+        });
+
+        // 3. Merge and Sort Transactions
+        transactionList.sort((a, b) => new Date(b.date) - new Date(a.date));
+
         const netProfit = totalRevenue - totalExpenses;
 
         // Calculate Daily Profit History
@@ -268,12 +290,13 @@ const fetchAnalyticsFromCloud = async (userId, setAnalytics, setSalesHistory, se
             totalRevenue: totalRevenue.toFixed(2),
             totalExpenses: totalExpenses.toFixed(2),
             netProfit: netProfit.toFixed(2),
-            totalOperationalExpenses: totalOperationalExpenses.toFixed(2),
-            expenseList, // Pass the list to the UI
+            transactionList, // Unified history list
             salesByItem: salesCount, // Expose per-item sales for details view
             restockSuggestions, // Expose detailed restock plan
             forecasts, // Expose forecasts for Chat/Settings
             salesDistribution, // For Pie Chart
+            salesData, // Raw sales data for detailed charts
+            itemsMap, // Item details for mapping
         });
 
         if (setSalesHistory) {
@@ -618,13 +641,12 @@ const AuthScreen = ({ email, setEmail, password, setPassword, authMode, setAuthM
     return (
         <View style={[styles.authContainer, { backgroundColor: theme.background }]}>
             <View style={[styles.authCard, { backgroundColor: theme.card }]}>
-                <View style={{ marginBottom: 20, backgroundColor: colors.primary + '15', padding: 15, borderRadius: 50 }}>
-                    <MaterialIcons name="storefront" size={40} color={colors.primary} />
+                <View style={{ marginBottom: 10 }}>
+                    <Image source={require('../../assets/images/logo.png')} style={{ width: 220, height: 220 }} resizeMode="contain" />
                 </View>
                 
-                <Text style={styles.authTitle}>BantayTindahan AI</Text>
                 <Text style={styles.authSubtitle}>
-                    {authMode === 'login' ? 'Welcome back, Entrepreneur!' : 'Start your smart store journey'}
+                    {authMode === 'login' ? 'Welcome back, Bantay!' : 'Start your smart store journey'}
                 </Text>
 
                 <View style={styles.authInputContainer}>
@@ -675,9 +697,8 @@ const AuthScreen = ({ email, setEmail, password, setPassword, authMode, setAuthM
 };
 
 // 2. Product Card Component for FlatList
-const ProductCard = ({ item, editStocks, pendingChanges, handleStockChange, saveStock, sellItem, addItem, deleteProduct, onOpenDetails, theme }) => {
-    const pending = pendingChanges[item.id] ?? 0;
-    const displayStock = (item.stock || 0) + pending;
+const ProductCard = ({ item, sellItem, addItem, deleteProduct, onOpenDetails, theme, onBulkAction }) => {
+    const displayStock = item.stock || 0;
     const isLowStock = displayStock <= 5;
 
     return (
@@ -690,11 +711,17 @@ const ProductCard = ({ item, editStocks, pendingChanges, handleStockChange, save
                         <Text style={{ fontSize: 15, color: theme.text === '#e0e0e0' ? '#aaa' : '#666', fontWeight: '500' }}>
                             ₱{item.price ? Number(item.price).toFixed(2) : '0.00'}
                         </Text>
+                        <Text style={{ fontSize: 12, color: '#888', marginTop: 2 }}>
+                            Cost: ₱{item.cost ? Number(item.cost).toFixed(2) : '0.00'}
+                        </Text>
                         {item.expiryDate ? (
                             <Text style={{ fontSize: 12, color: '#d9534f', marginTop: 4, fontWeight: '600' }}>Exp: {item.expiryDate}</Text>
                         ) : null}
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
+                        <TouchableOpacity onPress={() => deleteProduct(item.id)} style={{ marginBottom: 10, padding: 4 }}>
+                            <MaterialIcons name="delete-outline" size={22} color="#ccc" />
+                        </TouchableOpacity>
                         <Text style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', marginBottom: 2, fontWeight: '600' }}>Stock</Text>
                         <Text style={{ fontSize: 22, fontWeight: '800', color: isLowStock ? colors.danger : colors.primary }}>
                             {displayStock}
@@ -704,11 +731,13 @@ const ProductCard = ({ item, editStocks, pendingChanges, handleStockChange, save
             </TouchableOpacity>
 
             {/* Main POS Actions */}
-            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 15 }}>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
                 <TouchableOpacity
                     style={[styles.actionButton, { backgroundColor: displayStock > 0 ? colors.danger : '#e0e0e0', flex: 2 }]}
                     onPress={() => displayStock > 0 ? sellItem(item.id) : Alert.alert('Out of Stock', 'Cannot sell. Stock is 0.')}
                     disabled={displayStock <= 0}
+                    onLongPress={() => displayStock > 0 ? onBulkAction(item, 'sell') : null}
+                    delayLongPress={1000}
                 >
                     <MaterialIcons name="shopping-cart" size={22} color={displayStock > 0 ? "white" : "#999"} style={{ marginRight: 8 }} />
                     <Text style={[styles.actionButtonText, { color: displayStock > 0 ? "white" : "#999" }]}>SELL</Text>
@@ -717,33 +746,11 @@ const ProductCard = ({ item, editStocks, pendingChanges, handleStockChange, save
                 <TouchableOpacity
                     style={[styles.actionButton, { backgroundColor: colors.primary, flex: 1 }]}
                     onPress={() => addItem(item.id)}
+                    onLongPress={() => onBulkAction(item, 'add')}
+                    delayLongPress={1000}
                 >
                     <MaterialIcons name="add-box" size={22} color="white" style={{ marginRight: 6 }} />
                     <Text style={styles.actionButtonText}>ADD</Text>
-                </TouchableOpacity>
-            </View>
-            
-            {/* Quick Adjust / Admin Footer */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f5f5f5' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text style={{ fontSize: 12, color: '#aaa', marginRight: 8, fontWeight: '600' }}>ADJUST:</Text>
-                    <TextInput
-                        style={[styles.stockInput, { borderColor: pending !== 0 ? colors.accent : '#eee', backgroundColor: theme.background, color: theme.text }]}
-                        keyboardType="numeric"
-                        value={editStocks[item.id] ?? String(item.stock)}
-                        onChangeText={value => handleStockChange(item.id, value)}
-                        onBlur={() => saveStock(item.id)}
-                        returnKeyType="done"
-                    />
-                    {pending !== 0 && (
-                        <TouchableOpacity onPress={() => saveStock(item.id)} style={{ marginLeft: 10, backgroundColor: colors.accent, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 6 }}>
-                            <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold' }}>SAVE</Text>
-                        </TouchableOpacity>
-                    )}
-                </View>
-                
-                <TouchableOpacity onPress={() => deleteProduct(item.id)} style={{ padding: 8 }}>
-                    <MaterialIcons name="delete-outline" size={22} color="#ccc" />
                 </TouchableOpacity>
             </View>
         </View>
@@ -856,6 +863,7 @@ const AIChatScreen = ({ analytics, aiSettings, setAiSettings, chatMessages, setC
 // 2.5 Product Details Modal
 const ProductDetailsModal = ({ visible, onClose, product, salesData, onSaveDetails, theme }) => {
     const [price, setPrice] = useState('');
+    const [cost, setCost] = useState('');
     const [supplier, setSupplier] = useState('');
     const [expYear, setExpYear] = useState('');
     const [expMonth, setExpMonth] = useState('');
@@ -864,6 +872,7 @@ const ProductDetailsModal = ({ visible, onClose, product, salesData, onSaveDetai
     useEffect(() => {
         if (product) {
             setPrice(product.price !== undefined ? String(product.price) : '');
+            setCost(product.cost !== undefined ? String(product.cost) : '');
             setSupplier(product.supplier || '');
             if (product.expiryDate) {
                 const parts = product.expiryDate.split('-');
@@ -886,7 +895,7 @@ const ProductDetailsModal = ({ visible, onClose, product, salesData, onSaveDetai
         if (expYear && expMonth && expDay) {
             formattedExpiry = `${expYear}-${expMonth.padStart(2, '0')}-${expDay.padStart(2, '0')}`;
         }
-        onSaveDetails(product.id, price, supplier, formattedExpiry);
+        onSaveDetails(product.id, price, cost, supplier, formattedExpiry);
         onClose();
     };
 
@@ -901,7 +910,7 @@ const ProductDetailsModal = ({ visible, onClose, product, salesData, onSaveDetai
                 <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
                     <Text style={styles.modalTitle}>{product.name}</Text>
                     
-                    <Text style={{ marginBottom: 5, fontWeight: 'bold', color: '#555' }}>Edit Selling Price (₱):</Text>
+                    <Text style={{ marginBottom: 5, fontWeight: 'bold', color: theme.text }}>Edit Selling Price (₱):</Text>
                     <TextInput 
                         style={[styles.input, { marginBottom: 15, backgroundColor: theme.background, color: theme.text, borderColor: theme.background === '#121212' ? '#333' : '#ccc' }]} 
                         value={price} 
@@ -909,7 +918,15 @@ const ProductDetailsModal = ({ visible, onClose, product, salesData, onSaveDetai
                         keyboardType="numeric" 
                     />
 
-                    <Text style={{ marginBottom: 5, fontWeight: 'bold', color: '#555' }}>Supplier Name:</Text>
+                    <Text style={{ marginBottom: 5, fontWeight: 'bold', color: theme.text }}>Edit Cost Price (₱):</Text>
+                    <TextInput 
+                        style={[styles.input, { marginBottom: 15, backgroundColor: theme.background, color: theme.text, borderColor: theme.background === '#121212' ? '#333' : '#ccc' }]} 
+                        value={cost} 
+                        onChangeText={setCost} 
+                        keyboardType="numeric" 
+                    />
+
+                    <Text style={{ marginBottom: 5, fontWeight: 'bold', color: theme.text }}>Supplier Name:</Text>
                     <TextInput 
                         style={[styles.input, { marginBottom: 15, backgroundColor: theme.background, color: theme.text, borderColor: theme.background === '#121212' ? '#333' : '#ccc' }]} 
                         value={supplier} 
@@ -918,7 +935,7 @@ const ProductDetailsModal = ({ visible, onClose, product, salesData, onSaveDetai
                         placeholderTextColor="#888"
                     />
 
-                    <Text style={{ marginBottom: 5, fontWeight: 'bold', color: '#555' }}>Expiry Date:</Text>
+                    <Text style={{ marginBottom: 5, fontWeight: 'bold', color: theme.text }}>Expiry Date:</Text>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 }}>
                         <View style={{ width: '30%' }}>
                             <Text style={{ fontSize: 10, color: '#888', marginBottom: 2 }}>Year</Text>
@@ -975,13 +992,315 @@ const ProductDetailsModal = ({ visible, onClose, product, salesData, onSaveDetai
     );
 };
 
+// 2.7 Stat Details Modal (New Component)
+const StatDetailsModal = ({ visible, onClose, type, analytics, theme }) => {
+    const [filter, setFilter] = useState('7d'); // '7d' | '30d'
+    const [selectedProductId, setSelectedProductId] = useState('all');
+    const [breakdown, setBreakdown] = useState(null); // Store clicked day's data
+    const screenWidth = Dimensions.get('window').width - 60;
+
+    useEffect(() => {
+        // Reset filters when modal becomes visible for a new stat type
+        if (visible) {
+            setFilter('7d');
+            setSelectedProductId('all');
+            setBreakdown(null);
+        }
+    }, [visible, type]);
+
+    if (!visible || !analytics) return null;
+
+    const getTitle = () => {
+        switch (type) {
+            case 'revenue': return '💰 Revenue History';
+            case 'expenses': return '💸 Expense History';
+            case 'units': return '📦 Units Sold History';
+            case 'lowStock': return '⚠️ Low Stock Items';
+            case 'topItem': return '🏆 Top Seller';
+            case 'profit': return '📈 Net Profit History';
+            default: return 'Details';
+        }
+    };
+
+    const processChartData = () => {
+        const now = new Date();
+        const pastDate = new Date();
+        pastDate.setDate(now.getDate() - (filter === '7d' ? 7 : 30));
+
+        if (type === 'topItem') {
+            // Special handling for Top Items (Bar Chart)
+            const itemCounts = {};
+            analytics.salesData.forEach(sale => {
+                const date = new Date(sale.date);
+                if (date >= pastDate) {
+                    const item = analytics.itemsMap[sale.itemId];
+                    if (item) {
+                        itemCounts[item.name] = (itemCounts[item.name] || 0) + sale.qty;
+                    }
+                }
+            });
+            const sorted = Object.entries(itemCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            return {
+                labels: sorted.map(i => {
+                    const name = i[0];
+                    return name.length > 10 ? name.substring(0, 10) + '...' : name;
+                }),
+                datasets: [{ data: sorted.map(i => i[1]) }]
+            };
+        }
+
+        const labels = [];
+        const dataPoints = [];
+        const fullDates = [];
+
+        // Initialize dates
+        for (let d = new Date(pastDate); d <= now; d.setDate(d.getDate() + 1)) {
+            const dateStr = d.toISOString().slice(0, 10);
+            fullDates.push(dateStr);
+            
+            const label = filter === '7d' ? dateStr.slice(5) : dateStr.slice(8); // MM-DD or DD
+            // Sparse labels for 30d view to prevent overlapping
+            if (filter === '30d' && fullDates.length % 4 !== 0) {
+                labels.push('');
+            } else {
+                labels.push(label);
+            }
+
+            let value = 0;
+            if (type === 'revenue' || type === 'units') {
+                analytics.salesData.forEach(sale => {
+                    if (sale.date?.startsWith(dateStr)) {
+                        if (type === 'revenue') {
+                            const price = analytics.itemsMap[sale.itemId]?.price || 0;
+                            value += sale.qty * price;
+                        } else { // units
+                            if (selectedProductId === 'all' || sale.itemId === selectedProductId) {
+                                value += sale.qty;
+                            }
+                        }
+                    }
+                });
+            } else if (type === 'expenses') {
+                analytics.transactionList.forEach(t => {
+                    if (t.type === 'expense' && t.date?.startsWith(dateStr)) {
+                        value += Math.abs(t.amount); // Use absolute value since it's stored as negative
+                    }
+                })
+            }
+            dataPoints.push(value);
+        }
+
+        return {
+            labels,
+            datasets: [{ data: dataPoints }],
+            fullDates
+        };
+    };
+
+    const chartData = processChartData();
+
+    const ChartConfig = {
+        backgroundColor: theme.card,
+        backgroundGradientFrom: theme.card,
+        backgroundGradientTo: theme.background,
+        decimalPlaces: 0,
+        color: (opacity = 1) => type === 'expenses' ? `rgba(220, 53, 69, ${opacity})` : `rgba(34, 139, 34, ${opacity})`,
+        labelColor: (opacity = 1) => theme.text === '#e0e0e0' ? `rgba(255,255,255,${opacity})` : `rgba(0,0,0,${opacity})`,
+        barPercentage: 0.7,
+    };
+
+    const handleDataPointClick = ({ index, value }) => {
+        if (!chartData.fullDates || !chartData.fullDates[index]) return;
+        const date = chartData.fullDates[index];
+        
+        // Aggregate items for this date
+        const dailySales = {};
+        analytics.salesData.forEach(sale => {
+            if (sale.date.startsWith(date)) {
+                const name = analytics.itemsMap[sale.itemId]?.name || 'Unknown';
+                dailySales[name] = (dailySales[name] || 0) + sale.qty;
+            }
+        });
+        const itemsList = Object.entries(dailySales).map(([name, qty]) => ({ name, qty }));
+        setBreakdown({ date, items: itemsList, total: value });
+    };
+
+    return (
+        <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={onClose}>
+            <View style={styles.modalOverlay}>
+                <View style={[styles.modalContent, { backgroundColor: theme.card, width: '95%', maxHeight: '80%' }]}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+                        <Text style={[styles.modalTitle, { marginBottom: 0, color: theme.text }]}>{getTitle()}</Text>
+                        <TouchableOpacity onPress={onClose}><MaterialIcons name="close" size={24} color={theme.text} /></TouchableOpacity>
+                    </View>
+
+                    {type !== 'lowStock' && (
+                        <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 15 }}>
+                            <TouchableOpacity onPress={() => setFilter('7d')} style={{ paddingVertical: 6, paddingHorizontal: 12, backgroundColor: filter === '7d' ? colors.primary : theme.background, borderRadius: 20, marginRight: 10 }}>
+                                <Text style={{ color: filter === '7d' ? 'white' : theme.text, fontWeight: 'bold' }}>Last 7 Days</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => setFilter('30d')} style={{ paddingVertical: 6, paddingHorizontal: 12, backgroundColor: filter === '30d' ? colors.primary : theme.background, borderRadius: 20 }}>
+                                <Text style={{ color: filter === '30d' ? 'white' : theme.text, fontWeight: 'bold' }}>Last 30 Days</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+
+                    {type === 'units' && (
+                        <View style={{ marginHorizontal: 10, marginBottom: 15, borderWidth: 1, borderColor: theme.background === '#121212' ? '#444' : '#ccc', borderRadius: 8 }}>
+                            <Text style={{ position: 'absolute', top: -10, left: 10, backgroundColor: theme.card, paddingHorizontal: 5, fontSize: 12, color: theme.text }}>Filter by Product</Text>
+                            <Picker
+                                selectedValue={selectedProductId}
+                                onValueChange={(itemValue) => setSelectedProductId(itemValue)}
+                                style={{ color: theme.text }}
+                                dropdownIconColor={theme.text}
+                                itemStyle={{ color: theme.text }}
+                            >
+                                <Picker.Item label="Show All Products" value="all" />
+                                {Object.entries(analytics.itemsMap)
+                                    .sort(([, a], [, b]) => a.name.localeCompare(b.name))
+                                    .map(([id, item]) => (
+                                        <Picker.Item key={id} label={item.name} value={id} />
+                                    ))}
+                            </Picker>
+                        </View>
+                    )}
+
+                    {type === 'lowStock' ? (
+                        <ScrollView>
+                            {analytics.lowStock && analytics.lowStock.length > 0 ? (
+                                analytics.lowStock.map((name, index) => (
+                                    <View key={index} style={{ padding: 10, borderBottomWidth: 1, borderBottomColor: '#eee' }}>
+                                        <Text style={{ fontSize: 16, color: theme.text }}>⚠️ {name}</Text>
+                                    </View>
+                                ))
+                            ) : <Text style={{ textAlign: 'center', color: '#888', marginTop: 20 }}>No low stock items.</Text>}
+                        </ScrollView>
+                    ) : (
+                        <ScrollView horizontal>
+                            {type === 'topItem' ? (
+                                <BarChart data={chartData} width={screenWidth + 40} height={250} chartConfig={ChartConfig} yAxisLabel="" yAxisSuffix="" fromZero showValuesOnTopOfBars verticalLabelRotation={30} />
+                            ) : (
+                                <View>
+                                    <LineChart 
+                                        data={chartData} 
+                                        width={screenWidth + 40} 
+                                        height={250} 
+                                        chartConfig={ChartConfig} 
+                                        bezier 
+                                        onDataPointClick={handleDataPointClick}
+                                    />
+                                    <Text style={{ textAlign: 'center', fontSize: 12, color: '#888', marginTop: 5 }}>👆 Tap a point to see daily breakdown</Text>
+                                </View>
+                            )}
+                        </ScrollView>
+                    )}
+
+                    {breakdown && (
+                        <View style={{ marginTop: 15, padding: 15, backgroundColor: theme.background, borderRadius: 8, maxHeight: 150 }}>
+                            <Text style={{ fontWeight: 'bold', color: theme.text, marginBottom: 8, fontSize: 16 }}>📅 Sales on {breakdown.date}</Text>
+                            <ScrollView nestedScrollEnabled>
+                                {breakdown.items.length > 0 ? breakdown.items.map((item, idx) => (
+                                    <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                                        <Text style={{ color: theme.text }}>{item.name}</Text>
+                                        <Text style={{ fontWeight: 'bold', color: theme.text }}>x{item.qty}</Text>
+                                    </View>
+                                )) : <Text style={{ color: '#888' }}>No sales recorded.</Text>}
+                            </ScrollView>
+                        </View>
+                    )}
+                </View>
+            </View>
+        </Modal>
+    );
+};
+
+// 2.8 Bulk Action Modal (New Component)
+const BulkActionModal = ({ visible, onClose, onConfirm, actionType, itemName, qty, setQty, theme }) => {
+    return (
+        <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={onClose}>
+            <View style={styles.modalOverlay}>
+                <View style={[styles.modalContent, { backgroundColor: theme.card, width: '85%' }]}>
+                    <Text style={[styles.modalTitle, { color: actionType === 'sell' ? colors.danger : colors.primary }]}>
+                        {actionType === 'sell' ? 'Bulk Sell' : 'Bulk Add'}
+                    </Text>
+                    <Text style={{ textAlign: 'center', marginBottom: 15, color: theme.text, fontSize: 16 }}>
+                        {itemName}
+                    </Text>
+
+                    <Text style={{ marginBottom: 5, fontWeight: 'bold', color: '#555' }}>Enter Quantity:</Text>
+                    <TextInput
+                        style={[styles.input, { marginBottom: 20, backgroundColor: theme.background, color: theme.text, borderColor: theme.background === '#121212' ? '#333' : '#ccc', textAlign: 'center', fontSize: 24, height: 60 }]}
+                        value={qty}
+                        onChangeText={setQty}
+                        keyboardType="numeric"
+                        autoFocus={true}
+                        placeholder="0"
+                        placeholderTextColor="#888"
+                    />
+
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                        <View style={{ width: '45%' }}><Button title="Cancel" onPress={onClose} color="#888" /></View>
+                        <View style={{ width: '45%' }}>
+                            <Button title="Confirm" onPress={onConfirm} color={actionType === 'sell' ? colors.danger : colors.primary} />
+                        </View>
+                    </View>
+                </View>
+            </View>
+        </Modal>
+    );
+};
+
+// 2.9 Password Confirmation Modal (New Component)
+const PasswordConfirmModal = ({ visible, onClose, onConfirm, password, setPassword, theme }) => {
+    return (
+        <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={onClose}>
+            <View style={styles.modalOverlay}>
+                <View style={[styles.modalContent, { backgroundColor: theme.card, width: '85%' }]}>
+                    <Text style={[styles.modalTitle, { color: colors.danger }]}>
+                        Enter Password to Confirm
+                    </Text>
+                    <Text style={{ textAlign: 'center', marginBottom: 15, color: theme.text, fontSize: 14 }}>
+                        For your security, please enter your password to delete all data. This action cannot be undone.
+                    </Text>
+
+                    <Text style={{ marginBottom: 5, fontWeight: 'bold', color: theme.text }}>Password:</Text>
+                    <TextInput
+                        style={[styles.input, { marginBottom: 20, backgroundColor: theme.background, color: theme.text, borderColor: theme.background === '#121212' ? '#333' : '#ccc' }]}
+                        value={password}
+                        onChangeText={setPassword}
+                        secureTextEntry
+                        autoFocus={true}
+                        autoCapitalize="none"
+                        placeholder="Your account password"
+                        placeholderTextColor="#888"
+                    />
+
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                        <View style={{ width: '45%' }}><Button title="Cancel" onPress={onClose} color="#888" /></View>
+                        <View style={{ width: '45%' }}>
+                            <Button title="Confirm & Delete" onPress={onConfirm} color={colors.danger} />
+                        </View>
+                    </View>
+                </View>
+            </View>
+        </Modal>
+    );
+};
+
 // 3. Analytics Dashboard Screen
-const AnalyticsScreen = ({ analytics, salesHistory, profitHistory, aiSettings, theme }) => {
+const AnalyticsScreen = ({ analytics, salesHistory, profitHistory, aiSettings, theme, onResetPress }) => {
+    const [selectedStat, setSelectedStat] = useState(null);
     const screenWidth = Dimensions.get('window').width - 40;
     const chartWidth = Math.max(screenWidth, salesHistory.labels.length * 50);
     
     const [showExpenses, setShowExpenses] = useState(false);
     const [showSuggestions, setShowSuggestions] = useState(true);
+    const [historyFilter, setHistoryFilter] = useState('7d'); // '7d' | '30d'
+    const [visibleHistoryCount, setVisibleHistoryCount] = useState(11);
+
+    useEffect(() => {
+        setVisibleHistoryCount(11); // Reset on filter change
+    }, [historyFilter]);
 
     const ChartConfig = {
         backgroundColor: theme.card,
@@ -995,7 +1314,7 @@ const AnalyticsScreen = ({ analytics, salesHistory, profitHistory, aiSettings, t
     };
     
     const renderStatCard = (item) => (
-        <View style={[styles.statCard, { borderTopWidth: 4, borderTopColor: item.color, backgroundColor: theme.card }]}>
+        <TouchableOpacity onPress={() => setSelectedStat(item.type)} style={[styles.statCard, { borderTopWidth: 4, borderTopColor: item.color, backgroundColor: theme.card }]}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
                 <View style={{ backgroundColor: item.color + '15', padding: 8, borderRadius: 50 }}>
                     <MaterialIcons name={item.icon} size={24} color={item.color} />
@@ -1003,12 +1322,26 @@ const AnalyticsScreen = ({ analytics, salesHistory, profitHistory, aiSettings, t
             </View>
             <View>
                 <Text style={[styles.statValue, { color: theme.text }]} numberOfLines={1}>{item.value}</Text>
-                <Text style={styles.statTitle}>{item.title}</Text>
+                <Text style={[styles.statTitle, { color: theme.text === '#e0e0e0' ? '#aaa' : '#666' }]}>{item.title}</Text>
             </View>
-        </View>
+        </TouchableOpacity>
     );
     
     if (!analytics) return <Text style={{ padding: 20, textAlign: 'center' }}>Loading analytics...</Text>;
+
+    // Filter History List
+    const getFilteredHistory = () => {
+        if (!analytics.transactionList) return [];
+        const now = new Date();
+        const pastDate = new Date();
+        pastDate.setDate(now.getDate() - (historyFilter === '7d' ? 7 : 30));
+        
+        return analytics.transactionList.filter(item => {
+            const itemDate = new Date(item.date);
+            return itemDate >= pastDate && itemDate <= now;
+        });
+    };
+    const filteredHistory = getFilteredHistory();
 
     const printAnalytics = async () => {
         const html = `
@@ -1039,13 +1372,13 @@ const AnalyticsScreen = ({ analytics, salesHistory, profitHistory, aiSettings, t
                     </div>
                     <p style="text-align: center; font-size: 12px; color: #666;">(Expenses include Cost of Goods Sold + ₱${analytics.totalOperationalExpenses} in OpEx)</p>
 
-                    <h2>💸 Expense Log</h2>
+                    <h2>💸 Transaction History</h2>
                     <div style="background-color: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 10px;">
-                        ${analytics.expenseList && analytics.expenseList.length > 0 ? 
-                            analytics.expenseList.map(exp => `
+                        ${analytics.transactionList && analytics.transactionList.length > 0 ? 
+                            analytics.transactionList.slice(0, 50).map(t => `
                                 <div class="list-item" style="display: flex; justify-content: space-between;">
-                                    <span>${new Date(exp.date).toLocaleDateString()} - ${exp.description}</span>
-                                    <span style="color: #dc3545; font-weight: bold;">-₱${Number(exp.amount).toFixed(2)}</span>
+                                    <span>${new Date(t.date).toLocaleDateString()} - ${t.description}</span>
+                                    <span style="color: ${t.type === 'income' ? '#228B22' : '#dc3545'}; font-weight: bold;">${t.type === 'income' ? '+' : ''}₱${Math.abs(t.amount).toFixed(2)}</span>
                                 </div>
                             `).join('') 
                             : '<p style="text-align: center; color: #888;">No expenses recorded.</p>'
@@ -1125,7 +1458,7 @@ const AnalyticsScreen = ({ analytics, salesHistory, profitHistory, aiSettings, t
     };
 
     // Helper for uniform sections
-    const renderCollapsibleSection = (title, isOpen, toggle, content, titleColor = colors.text) => (
+    const renderCollapsibleSection = (title, isOpen, toggle, content, titleColor = theme.text) => (
         <View style={[styles.sectionCard, { backgroundColor: theme.card }]}>
             <TouchableOpacity onPress={toggle} style={[styles.sectionHeader, { marginBottom: isOpen ? 10 : 0 }]}>
                 <Text style={{ fontSize: 18, fontWeight: 'bold', color: titleColor }}>{title}</Text>
@@ -1137,19 +1470,24 @@ const AnalyticsScreen = ({ analytics, salesHistory, profitHistory, aiSettings, t
 
     return (
         <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-            <View style={{ margin: 16, marginBottom: 4 }}>
-                <Button title="🖨️ Export PDF Report" onPress={printAnalytics} color={colors.accent} />
+            <View style={{ margin: 16, marginBottom: 4, flexDirection: 'row', justifyContent: 'space-between' }}>
+                <View style={{ flex: 1, marginRight: 8 }}>
+                    <Button title="🖨️ Export PDF" onPress={printAnalytics} color={colors.accent} />
+                </View>
+                <View style={{ flex: 1, marginLeft: 8 }}>
+                    <Button title="🗑️ Reset Data" onPress={onResetPress} color={colors.danger} />
+                </View>
             </View>
 
             {/* Stats Grid */}
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 8, marginTop: 10 }}>
                 {[
-                    { title: "Revenue", value: `₱${analytics.totalRevenue}`, icon: "attach-money", color: colors.primary },
-                    { title: "Expenses", value: `₱${analytics.totalExpenses}`, icon: "money-off", color: colors.danger },
-                    { title: "Net Profit", value: `₱${analytics.netProfit}`, icon: "trending-up", color: parseFloat(analytics.netProfit) >= 0 ? colors.primary : colors.danger },
-                    { title: "Units Sold", value: analytics.totalSales, icon: "shopping-cart", color: colors.accent },
-                    { title: "Low Stock", value: analytics.lowStock?.length || 0, icon: "warning", color: analytics.lowStock?.length > 0 ? colors.danger : colors.primary },
-                    { title: "Top Item", value: analytics.top3?.[0] || 'N/A', icon: "star", color: "#FFD700" }
+                    { title: "Revenue", value: `₱${analytics.totalRevenue}`, icon: "attach-money", color: colors.primary, type: 'revenue' },
+                    { title: "Expenses", value: `₱${analytics.totalExpenses}`, icon: "money-off", color: colors.danger, type: 'expenses' },
+                    { title: "Net Profit", value: `₱${analytics.netProfit}`, icon: "trending-up", color: parseFloat(analytics.netProfit) >= 0 ? colors.primary : colors.danger, type: 'profit' },
+                    { title: "Units Sold", value: analytics.totalSales, icon: "shopping-cart", color: colors.accent, type: 'units' },
+                    { title: "Low Stock", value: analytics.lowStock?.length || 0, icon: "warning", color: analytics.lowStock?.length > 0 ? colors.danger : colors.primary, type: 'lowStock' },
+                    { title: "Top Seller", value: analytics.top3?.[0] || 'N/A', icon: "star", color: "#FFD700", type: 'topItem' }
                 ].map((stat, index) => (
                     <View key={index} style={{ width: '50%', padding: 6 }}>
                         {renderStatCard(stat)}
@@ -1157,26 +1495,52 @@ const AnalyticsScreen = ({ analytics, salesHistory, profitHistory, aiSettings, t
                 ))}
             </View>
 
-            {/* Expense History List */}
+            {/* Transaction History List */}
             {renderCollapsibleSection(
-                "💸 Expense History",
+                "💸 Transaction History",
                 showExpenses,
                 () => setShowExpenses(!showExpenses),
-                analytics.expenseList && analytics.expenseList.length > 0 ? (
-                    <View>
-                        {analytics.expenseList.map((exp, index) => (
-                            <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: index === analytics.expenseList.length - 1 ? 0 : 1, borderBottomColor: theme.background === '#121212' ? '#333' : '#eee', paddingVertical: 8 }}>
-                                <View>
-                                    <Text style={{ fontWeight: 'bold', color: '#555' }}>{exp.description}</Text>
-                                    <Text style={{ fontSize: 12, color: '#888' }}>{new Date(exp.date).toLocaleDateString()}</Text>
-                                </View>
-                                <Text style={{ fontWeight: 'bold', color: colors.danger }}>-₱{Number(exp.amount).toFixed(2)}</Text>
-                            </View>
-                        ))}
+                <View>
+                    {/* Date Filter */}
+                    <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 10 }}>
+                        <TouchableOpacity onPress={() => setHistoryFilter('7d')} style={{ paddingVertical: 4, paddingHorizontal: 12, backgroundColor: historyFilter === '7d' ? colors.primary : theme.background, borderRadius: 15, marginRight: 8 }}>
+                            <Text style={{ color: historyFilter === '7d' ? 'white' : theme.text, fontSize: 12, fontWeight: 'bold' }}>Last 7 Days</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => setHistoryFilter('30d')} style={{ paddingVertical: 4, paddingHorizontal: 12, backgroundColor: historyFilter === '30d' ? colors.primary : theme.background, borderRadius: 15 }}>
+                            <Text style={{ color: historyFilter === '30d' ? 'white' : theme.text, fontSize: 12, fontWeight: 'bold' }}>Last 30 Days</Text>
+                        </TouchableOpacity>
                     </View>
-                ) : (
-                    <Text style={{ color: '#666', fontStyle: 'italic' }}>No expenses logged yet.</Text>
-                )
+
+                    {filteredHistory.length > 0 ? (
+                    <FlatList
+                        data={filteredHistory.slice(0, visibleHistoryCount)}
+                        keyExtractor={(item, index) => item.id + '-' + index}
+                        renderItem={({ item }) => (
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
+                                <View>
+                                    <Text style={{ fontWeight: 'bold', color: theme.text, maxWidth: 200 }} numberOfLines={1}>{item.description}</Text>
+                                    <Text style={{ fontSize: 12, color: theme.text === '#e0e0e0' ? '#aaa' : '#888' }}>{new Date(item.date).toLocaleDateString()} {new Date(item.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</Text>
+                                </View>
+                                <Text style={{ fontWeight: 'bold', color: item.type === 'income' ? colors.primary : colors.danger }}>{item.type === 'income' ? '+' : ''}₱{Math.abs(item.amount).toFixed(2)}</Text>
+                            </View>
+                        )}
+                        ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: theme.background === '#121212' ? '#333' : '#eee' }} />}
+                        onEndReached={() => {
+                            if (visibleHistoryCount < filteredHistory.length) {
+                                setVisibleHistoryCount(prev => prev + 11);
+                            }
+                        }}
+                        onEndReachedThreshold={0.5}
+                        ListFooterComponent={() => {
+                            if (visibleHistoryCount < filteredHistory.length) {
+                                return <ActivityIndicator size="small" color={theme.primary} style={{ marginVertical: 10 }} />;
+                            }
+                            return null;
+                        }}
+                        style={{ maxHeight: 400 }} // To make it scrollable within the ScrollView
+                    />
+                    ) : <Text style={{ color: theme.text === '#e0e0e0' ? '#aaa' : '#666', fontStyle: 'italic', textAlign: 'center', marginVertical: 10 }}>No transactions in this period.</Text>}
+                </View>
             )}
 
             {/* AI Recommendations */}
@@ -1224,10 +1588,18 @@ const AnalyticsScreen = ({ analytics, salesHistory, profitHistory, aiSettings, t
                         accessor={"population"}
                         backgroundColor={"transparent"}
                         paddingLeft={"15"}
-                        absolute
                     />
                 </View>
             )}
+
+            {/* Stat Details Modal */}
+            <StatDetailsModal 
+                visible={!!selectedStat} 
+                onClose={() => setSelectedStat(null)} 
+                type={selectedStat} 
+                analytics={analytics} 
+                theme={theme} 
+            />
         </ScrollView>
     );
 };
@@ -1276,7 +1648,7 @@ const AddProductScreen = ({
                         </View>
 
                         <View style={{ marginBottom: 15 }}>
-                            <Text style={{ fontSize: 12, color: '#666', marginBottom: 5, fontWeight: '600' }}>PRODUCT NAME</Text>
+                            <Text style={{ fontSize: 12, color: theme.text, marginBottom: 5, fontWeight: '600' }}>PRODUCT NAME</Text>
                             <TextInput
                                 value={newProductName}
                                 onChangeText={setNewProductName}
@@ -1287,7 +1659,7 @@ const AddProductScreen = ({
                         </View>
 
                         <View style={{ marginBottom: 15 }}>
-                            <Text style={{ fontSize: 12, color: '#666', marginBottom: 5, fontWeight: '600' }}>INITIAL STOCK</Text>
+                            <Text style={{ fontSize: 12, color: theme.text, marginBottom: 5, fontWeight: '600' }}>INITIAL STOCK</Text>
                             <TextInput
                                 value={newProductStock}
                                 onChangeText={setNewProductStock}
@@ -1300,7 +1672,7 @@ const AddProductScreen = ({
 
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 }}>
                             <View style={{ width: '48%' }}>
-                                <Text style={{ fontSize: 12, color: '#666', marginBottom: 5, fontWeight: '600' }}>SELLING PRICE</Text>
+                                <Text style={{ fontSize: 12, color: theme.text, marginBottom: 5, fontWeight: '600' }}>SELLING PRICE</Text>
                                 <TextInput
                                     value={newProductPrice}
                                     onChangeText={setNewProductPrice}
@@ -1311,7 +1683,7 @@ const AddProductScreen = ({
                                 />
                             </View>
                             <View style={{ width: '48%' }}>
-                                <Text style={{ fontSize: 12, color: '#666', marginBottom: 5, fontWeight: '600' }}>COST PRICE</Text>
+                                <Text style={{ fontSize: 12, color: theme.text, marginBottom: 5, fontWeight: '600' }}>COST PRICE</Text>
                                 <TextInput
                                     value={newProductCost}
                                     onChangeText={setNewProductCost}
@@ -1324,7 +1696,7 @@ const AddProductScreen = ({
                         </View>
 
                         <View style={{ marginBottom: 20 }}>
-                            <Text style={{ fontSize: 12, color: '#666', marginBottom: 5, fontWeight: '600' }}>SUPPLIER (OPTIONAL)</Text>
+                            <Text style={{ fontSize: 12, color: theme.text, marginBottom: 5, fontWeight: '600' }}>SUPPLIER (OPTIONAL)</Text>
                             <TextInput
                                 value={newProductSupplier}
                                 onChangeText={setNewProductSupplier}
@@ -1335,7 +1707,7 @@ const AddProductScreen = ({
                         </View>
 
                         <View style={{ marginBottom: 20 }}>
-                            <Text style={{ fontSize: 12, color: '#666', marginBottom: 5, fontWeight: '600' }}>EXPIRY DATE (OPTIONAL)</Text>
+                            <Text style={{ fontSize: 12, color: theme.text, marginBottom: 5, fontWeight: '600' }}>EXPIRY DATE (OPTIONAL)</Text>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                                 <View style={{ width: '30%' }}>
                                     <Text style={{ fontSize: 10, color: '#888', marginBottom: 2 }}>Year</Text>
@@ -1394,7 +1766,7 @@ const AddProductScreen = ({
                         </View>
                         
                         <View style={{ marginBottom: 15 }}>
-                            <Text style={{ fontSize: 12, color: '#666', marginBottom: 5, fontWeight: '600' }}>DESCRIPTION</Text>
+                            <Text style={{ fontSize: 12, color: theme.text, marginBottom: 5, fontWeight: '600' }}>DESCRIPTION</Text>
                             <TextInput
                                 value={expenseDescription}
                                 onChangeText={setExpenseDescription}
@@ -1405,7 +1777,7 @@ const AddProductScreen = ({
                         </View>
 
                         <View style={{ marginBottom: 20 }}>
-                            <Text style={{ fontSize: 12, color: '#666', marginBottom: 5, fontWeight: '600' }}>AMOUNT</Text>
+                            <Text style={{ fontSize: 12, color: theme.text, marginBottom: 5, fontWeight: '600' }}>AMOUNT</Text>
                             <TextInput
                                 value={expenseAmount}
                                 onChangeText={setExpenseAmount}
@@ -1435,7 +1807,6 @@ const AddProductScreen = ({
 export default function Index() {
     const [items, setItems] = useState([]);
     const [editStocks, setEditStocks] = useState({});
-    const [pendingChanges, setPendingChanges] = useState({});
     const [isOffline, setIsOffline] = useState(false);
     const [networkEnabled, setNetworkEnabled] = useState(true);
     const [isDarkMode, setIsDarkMode] = useState(false);
@@ -1479,16 +1850,25 @@ export default function Index() {
     const [newExpMonth, setNewExpMonth] = useState('');
     const [newExpDay, setNewExpDay] = useState('');
 
+    // Bulk Action State
+    const [bulkAction, setBulkAction] = useState(null); // { item, type }
+    const [bulkQty, setBulkQty] = useState('');
+
+    const [isMenuVisible, setIsMenuVisible] = useState(false);
+    // Reset Modal State
+    const [isResetModalVisible, setIsResetModalVisible] = useState(false);
+    const [resetPassword, setResetPassword] = useState('');
+
     // Expense State
     const [expenseDescription, setExpenseDescription] = useState('');
     const [expenseAmount, setExpenseAmount] = useState('');
     const [refreshTrigger, setRefreshTrigger] = useState(0); // To trigger analytics reload
 
-    const filteredItems = search.trim()
+    const filteredItems = (search.trim()
         ? items.filter(item =>
             item.name.toLowerCase().includes(search.trim().toLowerCase())
         )
-        : items;
+        : items).sort((a, b) => a.name.localeCompare(b.name));
 
     // --- Effects ---
 
@@ -1532,7 +1912,7 @@ export default function Index() {
         if (user) {
             fetchAnalyticsFromCloud(user.uid, setAnalytics, setSalesHistory, setProfitHistory);
         }
-    }, [items, user, refreshTrigger]);
+    }, [user, refreshTrigger]);
     
     // --- Handlers ---
 
@@ -1556,61 +1936,95 @@ export default function Index() {
         }
     };
 
-    const handleLogout = async () => {
-        await signOut(auth);
+    const handleLogout = () => {
+        Alert.alert(
+            "Confirm Logout",
+            "Are you sure you want to log out?",
+            [
+                { text: "Cancel", style: "cancel" },
+                { text: "Logout", style: "destructive", onPress: async () => await signOut(auth) }
+            ]
+        );
     };
 
-    const sellItem = (id) => {
-        setPendingChanges(prev => ({
-            ...prev,
-            [id]: (prev[id] ?? 0) - 1,
-        }));
-        if (user) logSaleToCloud(user.uid, id, 1);
+    const handleOpenResetModal = () => {
+        setResetPassword('');
+        setIsResetModalVisible(true);
     };
 
-    const addItem = (id) => {
-        setPendingChanges(prev => ({
-            ...prev,
-            [id]: (prev[id] ?? 0) + 1,
-        }));
-    };
-
-    const handleStockChange = (id, value) => {
-        if (/^\d*$/.test(value)) {
-            setEditStocks(prev => ({ ...prev, [id]: value }));
-            setPendingChanges(prev => ({ ...prev, [id]: 0 })); // Reset pending changes if user types
-        }
-    };
-
-    const saveStock = async (id) => {
-        if (!user) return;
-        
-        let newStock;
-        let item = items.find(i => i.id === id);
-
-        if (!item) return;
-
-        if (pendingChanges[id] !== 0 && pendingChanges[id] !== undefined) {
-            newStock = (item.stock || 0) + (pendingChanges[id] ?? 0);
-            setEditStocks(prev => ({ ...prev, [id]: String(newStock) }));
-            setPendingChanges(prev => ({ ...prev, [id]: 0 }));
-        } else {
-            newStock = parseInt(editStocks[id] || '0', 10);
-        }
-
-        if (newStock < 0) {
-            Alert.alert("Invalid Stock", "Stock cannot be negative.");
-            newStock = item.stock; // revert to original stock
-            setEditStocks(prev => ({ ...prev, [id]: String(newStock) }));
-            setPendingChanges(prev => ({ ...prev, [id]: 0 }));
+    const handleConfirmReset = async () => {
+        if (!auth.currentUser || !resetPassword) {
+            Alert.alert("Error", "Password cannot be empty.");
             return;
         }
 
+        try {
+            const credential = EmailAuthProvider.credential(auth.currentUser.email, resetPassword);
+            await reauthenticateWithCredential(auth.currentUser, credential);
+
+            // Re-auth successful, proceed with deletion
+            const deleteColl = async (path) => {
+                const snap = await getDocs(collection(db, 'users', user.uid, path));
+                await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
+            };
+            await Promise.all([deleteColl('items'), deleteColl('sales'), deleteColl('expenses')]);
+            
+            setIsResetModalVisible(false);
+            setResetPassword('');
+            setRefreshTrigger(prev => prev + 1);
+            Alert.alert("Reset Complete", "All data has been cleared.");
+
+        } catch (e) {
+            Alert.alert("Authentication Failed", e.message);
+            console.error("Re-authentication failed:", e);
+        }
+    };
+
+    const sellItem = async (id) => {
+        if (!user) return;
+        const item = items.find(i => i.id === id);
+        if (!item || item.stock <= 0) {
+            Alert.alert("Out of Stock", "This item is out of stock.");
+            return;
+        }
+
+        const newStock = (item.stock || 0) - 1;
+        
+        // Optimistically update UI, but Firestore is the source of truth
         setItems(prevItems =>
             prevItems.map(i => (i.id === id ? { ...i, stock: newStock } : i))
         );
 
         await saveItemToCloud(user.uid, { ...item, stock: newStock });
+        await logSaleToCloud(user.uid, id, 1);
+        setRefreshTrigger(prev => prev + 1); // Force Analytics Refresh
+    };
+
+    const addItem = async (id) => {
+        if (!user) return;
+        const item = items.find(i => i.id === id);
+        if (!item) return;
+
+        const newStock = (item.stock || 0) + 1;
+
+        // Optimistic UI update
+        setItems(prevItems =>
+            prevItems.map(i => (i.id === id ? { ...i, stock: newStock } : i))
+        );
+
+        await saveItemToCloud(user.uid, { ...item, stock: newStock });
+
+        // Log Expense for the restock
+        const cost = item.cost ? Number(item.cost) : 15; // Default to 15 if missing, matching analytics
+        if (cost > 0) {
+            await addDoc(collection(db, 'users', user.uid, 'expenses'), {
+                description: `Restock: ${item.name} (+1)`,
+                amount: cost,
+                date: new Date().toISOString()
+            });
+        }
+        
+        setRefreshTrigger(prev => prev + 1); // Force Analytics Refresh
     };
 
     const addProduct = async () => {
@@ -1653,6 +2067,18 @@ export default function Index() {
         setActiveTab('inventory'); // Switch to main list after adding
 
         await saveItemToCloud(user.uid, newItem);
+
+        // Log Initial Stock Expense
+        const initialCost = stock * cost;
+        if (initialCost > 0) {
+            await addDoc(collection(db, 'users', user.uid, 'expenses'), {
+                description: `Initial Stock: ${name}`,
+                amount: initialCost,
+                date: new Date().toISOString()
+            });
+        }
+
+        setRefreshTrigger(prev => prev + 1); // Force Analytics Refresh (to catch initial expense)
     };
 
     const addExpense = async () => {
@@ -1704,15 +2130,64 @@ export default function Index() {
     const handleOpenDetails = (item) => setSelectedProduct(item);
     const handleCloseDetails = () => setSelectedProduct(null);
     
-    const handleSaveDetails = async (id, newPrice, newSupplier, newExpiry) => {
+    const handleSaveDetails = async (id, newPrice, newCost, newSupplier, newExpiry) => {
         if (!user) return;
         const priceNum = parseFloat(newPrice);
-        if (isNaN(priceNum) || priceNum < 0) {
-            Alert.alert("Invalid Price", "Please enter a valid positive number.");
+        const costNum = parseFloat(newCost);
+        if (isNaN(priceNum) || priceNum < 0 || isNaN(costNum) || costNum < 0) {
+            Alert.alert("Invalid Input", "Please enter valid positive numbers for price and cost.");
             return;
         }
-        setItems(prev => prev.map(item => item.id === id ? { ...item, price: priceNum, supplier: newSupplier, expiryDate: newExpiry } : item));
-        await updateItemDetailsInCloud(user.uid, id, { price: priceNum, supplier: newSupplier, expiryDate: newExpiry });
+        setItems(prev => prev.map(item => item.id === id ? { ...item, price: priceNum, cost: costNum, supplier: newSupplier, expiryDate: newExpiry } : item));
+        await updateItemDetailsInCloud(user.uid, id, { price: priceNum, cost: costNum, supplier: newSupplier, expiryDate: newExpiry });
+    };
+
+    const handleBulkAction = (item, type) => {
+        setBulkAction({ item, type });
+        setBulkQty('');
+    };
+
+    const confirmBulkAction = async () => {
+        if (!bulkAction || !user) return;
+        const qty = parseInt(bulkQty, 10);
+
+        if (isNaN(qty) || qty <= 0) {
+            Alert.alert("Invalid Quantity", "Please enter a valid positive number.");
+            return;
+        }
+
+        const { item, type } = bulkAction;
+
+        if (type === 'sell') {
+            if (item.stock < qty) {
+                Alert.alert("Not Enough Stock", `Cannot sell ${qty} units. Only ${item.stock} available.`);
+                return;
+            }
+            const newStock = (item.stock || 0) - qty;
+            
+            setItems(prevItems => prevItems.map(i => (i.id === item.id ? { ...i, stock: newStock } : i)));
+            await saveItemToCloud(user.uid, { ...item, stock: newStock });
+            await logSaleToCloud(user.uid, item.id, qty);
+
+        } else { // type === 'add'
+            const newStock = (item.stock || 0) + qty;
+
+            setItems(prevItems => prevItems.map(i => (i.id === item.id ? { ...i, stock: newStock } : i)));
+            await saveItemToCloud(user.uid, { ...item, stock: newStock });
+
+            const cost = qty * (item.cost ? Number(item.cost) : 15); // Default to 15 if missing
+            if (cost > 0) {
+                await addDoc(collection(db, 'users', user.uid, 'expenses'), {
+                    description: `Restock: ${item.name} (+${qty})`,
+                    amount: cost,
+                    date: new Date().toISOString()
+                });
+            }
+        }
+
+        setRefreshTrigger(prev => prev + 1);
+        setBulkAction(null);
+        setBulkQty('');
     };
 
     const toggleNetwork = async () => {
@@ -1755,7 +2230,7 @@ export default function Index() {
                     theme
                 }} />;
             case 'analytics':
-                return <AnalyticsScreen analytics={analytics} salesHistory={salesHistory} profitHistory={profitHistory} aiSettings={aiSettings} theme={theme} />;
+                return <AnalyticsScreen analytics={analytics} salesHistory={salesHistory} profitHistory={profitHistory} aiSettings={aiSettings} theme={theme} onResetPress={handleOpenResetModal} />;
             case 'chat':
                 return <AIChatScreen analytics={analytics} aiSettings={aiSettings} setAiSettings={setAiSettings} chatMessages={chatMessages} setChatMessages={setChatMessages} theme={theme} />;
             case 'inventory':
@@ -1784,15 +2259,12 @@ export default function Index() {
                             renderItem={({ item }) => (
                                 <ProductCard 
                                     item={item}
-                                    editStocks={editStocks}
-                                    pendingChanges={pendingChanges}
-                                    handleStockChange={handleStockChange}
-                                    saveStock={saveStock}
                                     sellItem={sellItem}
                                     addItem={addItem}
                                     deleteProduct={deleteProduct}
                                     onOpenDetails={handleOpenDetails}
                                     theme={theme}
+                                    onBulkAction={handleBulkAction}
                                 />
                             )}
                             ListEmptyComponent={() => (
@@ -1830,25 +2302,79 @@ export default function Index() {
             <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.background === '#121212' ? '#333' : '#eee' }]}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <Text style={styles.title}>BantayTindahan AI</Text>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 10 }}>
-                            <TouchableOpacity onPress={() => setIsDarkMode(!isDarkMode)} style={{ marginRight: 10 }}>
-                                <MaterialIcons name={isDarkMode ? "dark-mode" : "light-mode"} size={22} color={isDarkMode ? "#ffd54f" : "#f57c00"} />
-                            </TouchableOpacity>
-                            <MaterialIcons name={networkEnabled ? "wifi" : "wifi-off"} size={20} color={networkEnabled ? colors.primary : "#888"} style={{ marginRight: -4 }} />
-                            <View style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}>
-                                <Switch
-                                    value={networkEnabled}
-                                    onValueChange={toggleNetwork}
-                                    trackColor={{ false: "#767577", true: colors.primary }}
-                                    thumbColor={"#f4f3f4"}
-                                />
-                            </View>
-                        </View>
+                        <Image source={require('../../assets/images/logo.png')} style={{ width: 40, height: 40, marginRight: 8 }} resizeMode="contain" />
+                        <Text style={[styles.title, { marginBottom: 0 }]}>
+                            BantayTindahan <Text style={{ color: '#29b6f6' }}>AI</Text>
+                        </Text>
                     </View>
-                    <Button title="Logout" onPress={handleLogout} color="#888" />
+                    <TouchableOpacity onPress={() => setIsMenuVisible(true)} style={{ padding: 8 }}>
+                        <MaterialIcons name="menu" size={30} color={theme.text} />
+                    </TouchableOpacity>
                 </View>
             </View>
+
+            {/* Hamburger Menu Modal */}
+            <Modal
+                visible={isMenuVisible}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setIsMenuVisible(false)}
+            >
+                <TouchableOpacity 
+                    style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.1)' }} 
+                    activeOpacity={1} 
+                    onPress={() => setIsMenuVisible(false)}
+                >
+                    <View style={{ 
+                        position: 'absolute', 
+                        top: 55, 
+                        right: 15, 
+                        backgroundColor: theme.card, 
+                        borderRadius: 12, 
+                        padding: 15, 
+                        elevation: 10,
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.3,
+                        shadowRadius: 4.65,
+                        minWidth: 220,
+                        borderWidth: 1,
+                        borderColor: theme.background === '#121212' ? '#333' : '#eee'
+                    }}>
+                        {/* Wifi Toggle */}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.background === '#121212' ? '#333' : '#eee' }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <MaterialIcons name={networkEnabled ? "wifi" : "wifi-off"} size={22} color={networkEnabled ? colors.primary : "#888"} style={{ marginRight: 12 }} />
+                                <Text style={{ color: theme.text, fontSize: 16 }}>Online Mode</Text>
+                            </View>
+                            <Switch
+                                value={networkEnabled}
+                                onValueChange={toggleNetwork}
+                                trackColor={{ false: "#767577", true: colors.primary }}
+                                thumbColor={"#f4f3f4"}
+                            />
+                        </View>
+
+                        {/* Theme Toggle */}
+                        <TouchableOpacity 
+                            onPress={() => setIsDarkMode(!isDarkMode)}
+                            style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.background === '#121212' ? '#333' : '#eee' }}
+                        >
+                            <MaterialIcons name={isDarkMode ? "dark-mode" : "light-mode"} size={22} color={isDarkMode ? "#ffd54f" : "#f57c00"} style={{ marginRight: 12 }} />
+                            <Text style={{ color: theme.text, fontSize: 16 }}>{isDarkMode ? "Dark Mode" : "Light Mode"}</Text>
+                        </TouchableOpacity>
+
+                        {/* Logout */}
+                        <TouchableOpacity 
+                            onPress={() => { setIsMenuVisible(false); handleLogout(); }}
+                            style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }}
+                        >
+                            <MaterialIcons name="logout" size={22} color={colors.danger} style={{ marginRight: 12 }} />
+                            <Text style={{ color: colors.danger, fontSize: 16, fontWeight: 'bold' }}>Logout</Text>
+                        </TouchableOpacity>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
             
             {/* Offline Banner */}
             {(isOffline || !networkEnabled) && (
@@ -1872,6 +2398,28 @@ export default function Index() {
                 product={selectedProduct} 
                 salesData={analytics?.salesByItem}
                 onSaveDetails={handleSaveDetails}
+                theme={theme}
+            />
+
+            {/* Bulk Action Modal */}
+            <BulkActionModal
+                visible={!!bulkAction}
+                onClose={() => setBulkAction(null)}
+                onConfirm={confirmBulkAction}
+                actionType={bulkAction?.type}
+                itemName={bulkAction?.item?.name}
+                qty={bulkQty}
+                setQty={setBulkQty}
+                theme={theme}
+            />
+
+            {/* Password Confirmation Modal for Reset */}
+            <PasswordConfirmModal
+                visible={isResetModalVisible}
+                onClose={() => setIsResetModalVisible(false)}
+                onConfirm={handleConfirmReset}
+                password={resetPassword}
+                setPassword={setResetPassword}
                 theme={theme}
             />
         </View>
