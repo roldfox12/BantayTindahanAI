@@ -35,6 +35,340 @@ const auth = initializeAuth(app, {
     persistence: getReactNativePersistence(ReactNativeAsyncStorage)
 });
 
+// --- Translations ---
+const translations = {
+    en: {
+        welcomeBack: "Welcome back, Bantay!",
+        startJourney: "Start your smart store journey",
+        login: "Login",
+        createAccount: "Create Account",
+        register: "Register",
+        emailPlaceholder: "Email Address",
+        passwordPlaceholder: "Password",
+        noAccount: "Don't have an account? Register",
+        hasAccount: "Already have an account? Login",
+        posTab: "📦 POS",
+        addTab: "➕ Add",
+        dataTab: "📊 Data",
+        chatTab: "🤖 Chat",
+        searchPlaceholder: "🔍 Search Product...",
+        items: "ITEMS",
+        stock: "STOCK",
+        sell: "SELL",
+        add: "ADD",
+        onlineMode: "Online Mode",
+        darkMode: "Dark Mode",
+        lightMode: "Light Mode",
+        logout: "Logout",
+        language: "Language",
+        productDetails: "Product Details",
+        productName: "PRODUCT NAME",
+        initialStock: "INITIAL STOCK",
+        sellingPrice: "SELLING PRICE",
+        costPrice: "COST PRICE",
+        supplier: "SUPPLIER (OPTIONAL)",
+        expiryDate: "EXPIRY DATE (OPTIONAL)",
+        addToInventory: "Add to Inventory",
+        expenseDetails: "Expense Details",
+        description: "DESCRIPTION",
+        amount: "AMOUNT",
+        logExpense: "Log Expense",
+        newProduct: "New Product",
+        revenue: "Revenue",
+        expenses: "Expenses",
+        netProfit: "Net Profit",
+        unitsSold: "Units Sold",
+        lowStock: "Low Stock",
+        topSeller: "Top Seller",
+        transactionHistory: "💸 Transaction History",
+        aiSuggestions: "💡 Tindahan AI Suggestions",
+        salesTrend: "📈 Sales Trend (Last 7 Days)",
+        topProductsShare: "🍰 Top Products Share",
+        exportPdf: "🖨️ Export PDF",
+        resetData: "🗑️ Reset Data",
+        last7Days: "Last 7 Days",
+        last30Days: "Last 30 Days",
+        filterByProduct: "Filter by Product",
+        showAllProducts: "Show All Products",
+        tapPoint: "👆 Tap a point to see daily breakdown",
+        salesOn: "📅 Sales on",
+        noSales: "No sales recorded.",
+        bulkSell: "Bulk Sell",
+        bulkAdd: "Bulk Add",
+        enterQuantity: "Enter Quantity:",
+        confirm: "Confirm",
+        cancel: "Cancel",
+        save: "Save",
+        confirmDelete: "Confirm & Delete",
+        enterPasswordConfirm: "Enter Password to Confirm",
+        securityMessage: "For your security, please enter your password to delete all data. This action cannot be undone.",
+        aiNotificationSettings: "🔔 AI Notification Settings",
+        slowMoving: "Slow Moving",
+        fastMoving: "Fast Moving",
+        forecasts: "Forecasts",
+        askTips: "Ask for tips, stock status...",
+        send: "Send",
+        editSellingPrice: "Edit Selling Price (₱):",
+        editCostPrice: "Edit Cost Price (₱):",
+        supplierName: "Supplier Name:",
+        year: "Year",
+        month: "Month",
+        day: "Day",
+        productAnalytics: "📊 Product Analytics",
+        totalUnitsSold: "📦 Total Units Sold:",
+        estRevenue: "💰 Est. Revenue:",
+        currentStock: "📉 Current Stock:",
+        confirmLogout: "Confirm Logout",
+        logoutMessage: "Are you sure you want to log out?",
+        deleteProductTitle: "Delete Product",
+        deleteProductMsg: "Are you sure you want to delete",
+        thisCannotBeUndone: "This cannot be undone.",
+        outOfStock: "Out of Stock",
+        outOfStockMsg: "This item is out of stock.",
+        validationError: "Validation Error",
+        validationMsg: "Please enter a valid name and non-negative stock.",
+        duplicateProduct: "Duplicate Product",
+        duplicateMsg: "A product with this name already exists. Please use the existing entry.",
+        expenseLogged: "Expense logged successfully.",
+        invalidInput: "Invalid Input",
+        invalidInputMsg: "Please enter valid positive numbers for price and cost.",
+        invalidQuantity: "Invalid Quantity",
+        invalidQuantityMsg: "Please enter a valid positive number.",
+        notEnoughStock: "Not Enough Stock",
+        notEnoughStockMsg: "Cannot sell",
+        unitsOnly: "units. Only",
+        available: "available.",
+        error: "Error",
+        passwordEmpty: "Password cannot be empty.",
+        resetComplete: "Reset Complete",
+        resetCompleteMsg: "All data has been cleared.",
+        authFailed: "Authentication Failed",
+        loginFailed: "Login failed",
+        regFailed: "Registration failed",
+        offlineMode: "☁️ Offline Mode: Changes will sync when online"
+    },
+    tl: {
+        welcomeBack: "Maligayang pagbabalik, Bantay!",
+        startJourney: "Simulan ang iyong smart store journey",
+        login: "Mag-login",
+        createAccount: "Gumawa ng Account",
+        register: "Mag-rehistro",
+        emailPlaceholder: "Email Address",
+        passwordPlaceholder: "Password",
+        noAccount: "Wala pang account? Mag-rehistro",
+        hasAccount: "May account na? Mag-login",
+        posTab: "📦 POS",
+        addTab: "➕ Dagdag",
+        dataTab: "📊 Datos",
+        chatTab: "🤖 Chat",
+        searchPlaceholder: "🔍 Hanapin ang Produkto...",
+        items: "MGA ITEM",
+        stock: "STOCK",
+        sell: "BENTA",
+        add: "DAGDAG",
+        onlineMode: "Online Mode",
+        darkMode: "Dark Mode",
+        lightMode: "Light Mode",
+        logout: "Mag-logout",
+        language: "Wika",
+        productDetails: "Detalye ng Produkto",
+        productName: "PANGALAN NG PRODUKTO",
+        initialStock: "PANIMULANG STOCK",
+        sellingPrice: "PRESULONG BENTA",
+        costPrice: "PUHUNAN",
+        supplier: "SUPPLIER (OPSYONAL)",
+        expiryDate: "PETSA NG PAGKA-EXPIRE (OPSYONAL)",
+        addToInventory: "Idagdag sa Imbentaryo",
+        expenseDetails: "Detalye ng Gastusin",
+        description: "PAGLALARAWAN",
+        amount: "HALAGA",
+        logExpense: "I-log ang Gastos",
+        newProduct: "Bagong Produkto",
+        revenue: "Kita",
+        expenses: "Gastusin",
+        netProfit: "Tubong Net",
+        unitsSold: "Nabentang Yunit",
+        lowStock: "Mababang Stock",
+        topSeller: "Mabenta",
+        transactionHistory: "💸 Kasaysayan ng Transaksyon",
+        aiSuggestions: "💡 Mga Suhestiyon ng Tindahan AI",
+        salesTrend: "📈 Takbo ng Benta (Huling 7 Araw)",
+        topProductsShare: "🍰 Bahagi ng Nangungunang Produkto",
+        exportPdf: "🖨️ I-export ang PDF",
+        resetData: "🗑️ I-reset ang Datos",
+        last7Days: "Huling 7 Araw",
+        last30Days: "Huling 30 Araw",
+        filterByProduct: "I-filter ayon sa Produkto",
+        showAllProducts: "Ipakita Lahat ng Produkto",
+        tapPoint: "👆 I-tap ang punto para makita ang detalye",
+        salesOn: "📅 Benta noong",
+        noSales: "Walang naitalang benta.",
+        bulkSell: "Maramihang Benta",
+        bulkAdd: "Maramihang Dagdag",
+        enterQuantity: "Ilagay ang Dami:",
+        confirm: "Kumpirmahin",
+        cancel: "Kanselahin",
+        save: "I-save",
+        confirmDelete: "Kumpirmahin at Burahin",
+        enterPasswordConfirm: "Ilagay ang Password para Kumpirmahin",
+        securityMessage: "Para sa iyong seguridad, ilagay ang iyong password upang burahin ang lahat ng datos. Hindi na ito maibabalik.",
+        aiNotificationSettings: "🔔 Mga Setting ng AI Notification",
+        slowMoving: "Mabagal na Benta",
+        fastMoving: "Mabilis na Benta",
+        forecasts: "Pagtataya",
+        askTips: "Humingi ng tips, status ng stock...",
+        send: "Ipadala",
+        editSellingPrice: "I-edit ang Presyong Benta (₱):",
+        editCostPrice: "I-edit ang Puhunan (₱):",
+        supplierName: "Pangalan ng Supplier:",
+        year: "Taon",
+        month: "Buwan",
+        day: "Araw",
+        productAnalytics: "📊 Analytics ng Produkto",
+        totalUnitsSold: "📦 Kabuuang Nabenta:",
+        estRevenue: "💰 Est. Kita:",
+        currentStock: "📉 Kasalukuyang Stock:",
+        confirmLogout: "Kumpirmahin ang Pag-logout",
+        logoutMessage: "Sigurado ka bang gusto mong mag-logout?",
+        deleteProductTitle: "Burahin ang Produkto",
+        deleteProductMsg: "Sigurado ka bang gusto mong burahin ang",
+        thisCannotBeUndone: "Hindi na ito maibabalik.",
+        outOfStock: "Wala nang Stock",
+        outOfStockMsg: "Ang item na ito ay wala nang stock.",
+        validationError: "Error sa Validasyon",
+        validationMsg: "Mangyaring maglagay ng valid na pangalan at hindi negatibong stock.",
+        duplicateProduct: "Dobleng Produkto",
+        duplicateMsg: "Mayroon nang produkto na may ganitong pangalan. Gamitin ang umiiral na entry.",
+        expenseLogged: "Matagumpay na na-log ang gastos.",
+        invalidInput: "Maling Input",
+        invalidInputMsg: "Mangyaring maglagay ng valid na positibong numero para sa presyo at puhunan.",
+        invalidQuantity: "Maling Dami",
+        invalidQuantityMsg: "Mangyaring maglagay ng valid na positibong numero.",
+        notEnoughStock: "Kulang ang Stock",
+        notEnoughStockMsg: "Hindi mabebenta ang",
+        unitsOnly: "yunit.",
+        available: "na lang ang available.",
+        error: "Error",
+        passwordEmpty: "Hindi pwedeng walang laman ang password.",
+        resetComplete: "Kumpleto na ang Reset",
+        resetCompleteMsg: "Na-clear na ang lahat ng datos.",
+        authFailed: "Nabigo ang Authentication",
+        loginFailed: "Nabigo ang pag-login",
+        regFailed: "Nabigo ang pagpaparehistro",
+        offlineMode: "☁️ Offline Mode: Ang mga pagbabago ay masi-sync kapag online na"
+    },
+    ceb: {
+        welcomeBack: "Maayong pagbalik, Bantay!",
+        startJourney: "Sugdi ang imong smart store journey",
+        login: "Mag-login",
+        createAccount: "Paghimo og Account",
+        register: "Mag-rehistro",
+        emailPlaceholder: "Email Address",
+        passwordPlaceholder: "Password",
+        noAccount: "Wala pay account? Mag-rehistro",
+        hasAccount: "Naa nay account? Mag-login",
+        posTab: "📦 POS",
+        addTab: "➕ Dugang",
+        dataTab: "📊 Datos",
+        chatTab: "🤖 Chat",
+        searchPlaceholder: "🔍 Pangitaa ang Produkto...",
+        items: "MGA ITEM",
+        stock: "STOCK",
+        sell: "BALIGYA",
+        add: "DUGANG",
+        onlineMode: "Online Mode",
+        darkMode: "Dark Mode",
+        lightMode: "Light Mode",
+        logout: "Mag-logout",
+        language: "Pinulongan",
+        productDetails: "Detalye sa Produkto",
+        productName: "NGALAN SA PRODUKTO",
+        initialStock: "SUGOD NGA STOCK",
+        sellingPrice: "PRESYO SA BALIGYA",
+        costPrice: "PUHUNAN",
+        supplier: "SUPPLIER (OPSYONAL)",
+        expiryDate: "PETSA SA PAG-EXPIRE (OPSYONAL)",
+        addToInventory: "Idugang sa Imbentaryo",
+        expenseDetails: "Detalye sa Gastos",
+        description: "PAGHULAGWAY",
+        amount: "KANTIDAD",
+        logExpense: "I-log ang Gastos",
+        newProduct: "Bag-ong Produkto",
+        revenue: "Kita",
+        expenses: "Gastos",
+        netProfit: "Net nga Kita",
+        unitsSold: "Unit nga Nahalin",
+        lowStock: "Gamay na lang ang Stock",
+        topSeller: "Kusog Mahalin",
+        transactionHistory: "💸 Kasaysayan sa Transaksyon",
+        aiSuggestions: "💡 Mga Suhestiyon sa Tindahan AI",
+        salesTrend: "📈 Dagan sa Benta (Niaging 7 ka Adlaw)",
+        topProductsShare: "🍰 Bahin sa Nag-unang Produkto",
+        exportPdf: "🖨️ I-export ang PDF",
+        resetData: "🗑️ I-reset ang Datos",
+        last7Days: "Niaging 7 ka Adlaw",
+        last30Days: "Niaging 30 ka Adlaw",
+        filterByProduct: "I-filter pinaagi sa Produkto",
+        showAllProducts: "Ipakita Tanan nga Produkto",
+        tapPoint: "👆 I-tap ang punto para makita ang detalye",
+        salesOn: "📅 Benta sa",
+        noSales: "Walay natala nga benta.",
+        bulkSell: "Daghan nga Baligya",
+        bulkAdd: "Daghan nga Dugang",
+        enterQuantity: "Isulod ang Gidaghanon:",
+        confirm: "Kumpirmaha",
+        cancel: "Kanselahon",
+        save: "I-save",
+        confirmDelete: "Kumpirmaha ug Papasa",
+        enterPasswordConfirm: "Isulod ang Password para Kumpirmahon",
+        securityMessage: "Para sa imong seguridad, isulod ang imong password aron papason ang tanang datos. Dili na kini mabalik.",
+        aiNotificationSettings: "🔔 Mga Setting sa AI Notification",
+        slowMoving: "Hinay Mahalin",
+        fastMoving: "Paspas Mahalin",
+        forecasts: "Pagtagna",
+        askTips: "Pangayo og tips, status sa stock...",
+        send: "Ipadala",
+        editSellingPrice: "I-edit ang Presyo sa Baligya (₱):",
+        editCostPrice: "I-edit ang Puhunan (₱):",
+        supplierName: "Ngalan sa Supplier:",
+        year: "Tuig",
+        month: "Bulan",
+        day: "Adlaw",
+        productAnalytics: "📊 Analytics sa Produkto",
+        totalUnitsSold: "📦 Kinatibuk-ang Nahalin:",
+        estRevenue: "💰 Est. Kita:",
+        currentStock: "📉 Kasamtangang Stock:",
+        confirmLogout: "Kumpirmaha ang Pag-logout",
+        logoutMessage: "Sigurado ka ba nga gusto kang mag-logout?",
+        deleteProductTitle: "Papasa ang Produkto",
+        deleteProductMsg: "Sigurado ka ba nga gusto nimong papason ang",
+        thisCannotBeUndone: "Dili na kini mabalik.",
+        outOfStock: "Wala nay Stock",
+        outOfStockMsg: "Kini nga item wala nay stock.",
+        validationError: "Error sa Validasyon",
+        validationMsg: "Palihug isulod ang valid nga ngalan ug dili negatibo nga stock.",
+        duplicateProduct: "Doble nga Produkto",
+        duplicateMsg: "Aduna nay produkto nga adunay ingon niini nga ngalan. Gamita ang anaa na nga entry.",
+        expenseLogged: "Malampuson nga na-log ang gastos.",
+        invalidInput: "Sayop nga Input",
+        invalidInputMsg: "Palihug isulod ang valid nga positibo nga numero para sa presyo ug puhunan.",
+        invalidQuantity: "Sayop nga Gidaghanon",
+        invalidQuantityMsg: "Palihug isulod ang valid nga positibo nga numero.",
+        notEnoughStock: "Kulang ang Stock",
+        notEnoughStockMsg: "Dili mabaligya ang",
+        unitsOnly: "ka unit.",
+        available: "na lang ang available.",
+        error: "Error",
+        passwordEmpty: "Dili pwede nga walay sulod ang password.",
+        resetComplete: "Kompleto na ang Reset",
+        resetCompleteMsg: "Na-clear na ang tanang datos.",
+        authFailed: "Napakyas ang Authentication",
+        loginFailed: "Napakyas ang pag-login",
+        regFailed: "Napakyas ang pagparehistro",
+        offlineMode: "☁️ Offline Mode: Ang mga kausaban ma-sync kung online na"
+    }
+};
+
 // --- Helper Functions (Keep these here) ---
 
 // Log sale to Firestore (per user)
@@ -637,7 +971,8 @@ const styles = StyleSheet.create({
 // --- Component Implementations ---
 
 // 1. Auth Screen
-const AuthScreen = ({ email, setEmail, password, setPassword, authMode, setAuthMode, handleLogin, handleRegister, theme }) => {
+const AuthScreen = ({ email, setEmail, password, setPassword, authMode, setAuthMode, handleLogin, handleRegister, theme, language }) => {
+    const t = translations[language];
     return (
         <View style={[styles.authContainer, { backgroundColor: theme.background }]}>
             <View style={[styles.authCard, { backgroundColor: theme.card }]}>
@@ -646,13 +981,13 @@ const AuthScreen = ({ email, setEmail, password, setPassword, authMode, setAuthM
                 </View>
                 
                 <Text style={styles.authSubtitle}>
-                    {authMode === 'login' ? 'Welcome back, Bantay!' : 'Start your smart store journey'}
+                    {authMode === 'login' ? t.welcomeBack : t.startJourney}
                 </Text>
 
                 <View style={styles.authInputContainer}>
                     <MaterialIcons name="email" size={20} color="#aaa" style={{ marginRight: 10 }} />
                     <TextInput
-                        placeholder="Email Address"
+                        placeholder={t.emailPlaceholder}
                         value={email}
                         onChangeText={setEmail}
                         autoCapitalize="none"
@@ -665,7 +1000,7 @@ const AuthScreen = ({ email, setEmail, password, setPassword, authMode, setAuthM
                 <View style={styles.authInputContainer}>
                     <MaterialIcons name="lock" size={20} color="#aaa" style={{ marginRight: 10 }} />
                     <TextInput
-                        placeholder="Password"
+                        placeholder={t.passwordPlaceholder}
                         value={password}
                         onChangeText={setPassword}
                         secureTextEntry
@@ -679,7 +1014,7 @@ const AuthScreen = ({ email, setEmail, password, setPassword, authMode, setAuthM
                     onPress={authMode === 'login' ? handleLogin : handleRegister}
                 >
                     <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
-                        {authMode === 'login' ? "Login" : "Create Account"}
+                        {authMode === 'login' ? t.login : t.createAccount}
                     </Text>
                 </TouchableOpacity>
 
@@ -688,7 +1023,7 @@ const AuthScreen = ({ email, setEmail, password, setPassword, authMode, setAuthM
                     style={{ marginTop: 20 }}
                 >
                     <Text style={{ color: colors.accent, fontWeight: '600' }}>
-                        {authMode === 'login' ? "Don't have an account? Register" : "Already have an account? Login"}
+                        {authMode === 'login' ? t.noAccount : t.hasAccount}
                     </Text>
                 </TouchableOpacity>
             </View>
@@ -697,7 +1032,8 @@ const AuthScreen = ({ email, setEmail, password, setPassword, authMode, setAuthM
 };
 
 // 2. Product Card Component for FlatList
-const ProductCard = ({ item, sellItem, addItem, deleteProduct, onOpenDetails, theme, onBulkAction }) => {
+const ProductCard = ({ item, sellItem, addItem, deleteProduct, onOpenDetails, theme, onBulkAction, language }) => {
+    const t = translations[language];
     const displayStock = item.stock || 0;
     const isLowStock = displayStock <= 5;
 
@@ -722,7 +1058,7 @@ const ProductCard = ({ item, sellItem, addItem, deleteProduct, onOpenDetails, th
                         <TouchableOpacity onPress={() => deleteProduct(item.id)} style={{ marginBottom: 10, padding: 4 }}>
                             <MaterialIcons name="delete-outline" size={22} color="#ccc" />
                         </TouchableOpacity>
-                        <Text style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', marginBottom: 2, fontWeight: '600' }}>Stock</Text>
+                        <Text style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', marginBottom: 2, fontWeight: '600' }}>{t.stock}</Text>
                         <Text style={{ fontSize: 22, fontWeight: '800', color: isLowStock ? colors.danger : colors.primary }}>
                             {displayStock}
                         </Text>
@@ -734,13 +1070,13 @@ const ProductCard = ({ item, sellItem, addItem, deleteProduct, onOpenDetails, th
             <View style={{ flexDirection: 'row', gap: 12 }}>
                 <TouchableOpacity
                     style={[styles.actionButton, { backgroundColor: displayStock > 0 ? colors.danger : '#e0e0e0', flex: 2 }]}
-                    onPress={() => displayStock > 0 ? sellItem(item.id) : Alert.alert('Out of Stock', 'Cannot sell. Stock is 0.')}
+                    onPress={() => displayStock > 0 ? sellItem(item.id) : Alert.alert(t.outOfStock, t.outOfStockMsg)}
                     disabled={displayStock <= 0}
                     onLongPress={() => displayStock > 0 ? onBulkAction(item, 'sell') : null}
                     delayLongPress={1000}
                 >
                     <MaterialIcons name="shopping-cart" size={22} color={displayStock > 0 ? "white" : "#999"} style={{ marginRight: 8 }} />
-                    <Text style={[styles.actionButtonText, { color: displayStock > 0 ? "white" : "#999" }]}>SELL</Text>
+                    <Text style={[styles.actionButtonText, { color: displayStock > 0 ? "white" : "#999" }]}>{t.sell}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -750,7 +1086,7 @@ const ProductCard = ({ item, sellItem, addItem, deleteProduct, onOpenDetails, th
                     delayLongPress={1000}
                 >
                     <MaterialIcons name="add-box" size={22} color="white" style={{ marginRight: 6 }} />
-                    <Text style={styles.actionButtonText}>ADD</Text>
+                    <Text style={styles.actionButtonText}>{t.add}</Text>
                 </TouchableOpacity>
             </View>
         </View>
@@ -758,7 +1094,8 @@ const ProductCard = ({ item, sellItem, addItem, deleteProduct, onOpenDetails, th
 };
 
 // 2.6 AI Chat & Settings Screen
-const AIChatScreen = ({ analytics, aiSettings, setAiSettings, chatMessages, setChatMessages, theme }) => {
+const AIChatScreen = ({ analytics, aiSettings, setAiSettings, chatMessages, setChatMessages, theme, language }) => {
+    const t = translations[language];
     const [inputText, setInputText] = useState('');
 
     const businessTips = [
@@ -810,23 +1147,23 @@ const AIChatScreen = ({ analytics, aiSettings, setAiSettings, chatMessages, setC
         <View style={{ flex: 1 }}>
             {/* Settings Header */}
             <View style={{ backgroundColor: theme.card, padding: 15, borderBottomWidth: 1, borderColor: theme.background === '#121212' ? '#333' : '#eee' }}>
-                <Text style={{ fontWeight: 'bold', color: colors.primary, marginBottom: 10 }}>🔔 AI Notification Settings</Text>
+                <Text style={{ fontWeight: 'bold', color: colors.primary, marginBottom: 10 }}>{t.aiNotificationSettings}</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', width: '48%', marginBottom: 5 }}>
                         <Switch value={aiSettings.lowStock} onValueChange={() => toggleSetting('lowStock')} trackColor={{true: colors.primary}} thumbColor={Platform.OS === 'android' ? '#f4f3f4' : ''} />
-                        <Text style={{ fontSize: 12, marginLeft: 5, color: theme.text }}>Low Stock</Text>
+                        <Text style={{ fontSize: 12, marginLeft: 5, color: theme.text }}>{t.lowStock}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', width: '48%', marginBottom: 5 }}>
                         <Switch value={aiSettings.slowMoving} onValueChange={() => toggleSetting('slowMoving')} trackColor={{true: colors.primary}} thumbColor={Platform.OS === 'android' ? '#f4f3f4' : ''} />
-                        <Text style={{ fontSize: 12, marginLeft: 5, color: theme.text }}>Slow Moving</Text>
+                        <Text style={{ fontSize: 12, marginLeft: 5, color: theme.text }}>{t.slowMoving}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', width: '48%' }}>
                         <Switch value={aiSettings.fastMoving} onValueChange={() => toggleSetting('fastMoving')} trackColor={{true: colors.primary}} thumbColor={Platform.OS === 'android' ? '#f4f3f4' : ''} />
-                        <Text style={{ fontSize: 12, marginLeft: 5, color: theme.text }}>Fast Moving</Text>
+                        <Text style={{ fontSize: 12, marginLeft: 5, color: theme.text }}>{t.fastMoving}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', width: '48%' }}>
                         <Switch value={aiSettings.forecasts} onValueChange={() => toggleSetting('forecasts')} trackColor={{true: colors.primary}} thumbColor={Platform.OS === 'android' ? '#f4f3f4' : ''} />
-                        <Text style={{ fontSize: 12, marginLeft: 5, color: theme.text }}>Forecasts</Text>
+                        <Text style={{ fontSize: 12, marginLeft: 5, color: theme.text }}>{t.forecasts}</Text>
                     </View>
                 </View>
             </View>
@@ -848,12 +1185,12 @@ const AIChatScreen = ({ analytics, aiSettings, setAiSettings, chatMessages, setC
                 <View style={{ flexDirection: 'row', padding: 10, backgroundColor: theme.card, borderTopWidth: 1, borderColor: theme.background === '#121212' ? '#333' : '#eee' }}>
                     <TextInput
                         style={[styles.input, { flex: 1, marginBottom: 0, marginRight: 10, backgroundColor: theme.background, color: theme.text, borderColor: theme.background === '#121212' ? '#333' : '#ccc' }]}
-                        placeholder="Ask for tips, stock status..."
+                        placeholder={t.askTips}
                         placeholderTextColor="#888"
                         value={inputText}
                         onChangeText={setInputText}
                     />
-                    <Button title="Send" onPress={handleSend} color={colors.primary} />
+                    <Button title={t.send} onPress={handleSend} color={colors.primary} />
                 </View>
             </KeyboardAvoidingView>
         </View>
@@ -861,7 +1198,8 @@ const AIChatScreen = ({ analytics, aiSettings, setAiSettings, chatMessages, setC
 };
 
 // 2.5 Product Details Modal
-const ProductDetailsModal = ({ visible, onClose, product, salesData, onSaveDetails, theme }) => {
+const ProductDetailsModal = ({ visible, onClose, product, salesData, onSaveDetails, theme, language }) => {
+    const t = translations[language];
     const [price, setPrice] = useState('');
     const [cost, setCost] = useState('');
     const [supplier, setSupplier] = useState('');
@@ -910,7 +1248,7 @@ const ProductDetailsModal = ({ visible, onClose, product, salesData, onSaveDetai
                 <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
                     <Text style={styles.modalTitle}>{product.name}</Text>
                     
-                    <Text style={{ marginBottom: 5, fontWeight: 'bold', color: theme.text }}>Edit Selling Price (₱):</Text>
+                    <Text style={{ marginBottom: 5, fontWeight: 'bold', color: theme.text }}>{t.editSellingPrice}</Text>
                     <TextInput 
                         style={[styles.input, { marginBottom: 15, backgroundColor: theme.background, color: theme.text, borderColor: theme.background === '#121212' ? '#333' : '#ccc' }]} 
                         value={price} 
@@ -918,7 +1256,7 @@ const ProductDetailsModal = ({ visible, onClose, product, salesData, onSaveDetai
                         keyboardType="numeric" 
                     />
 
-                    <Text style={{ marginBottom: 5, fontWeight: 'bold', color: theme.text }}>Edit Cost Price (₱):</Text>
+                    <Text style={{ marginBottom: 5, fontWeight: 'bold', color: theme.text }}>{t.editCostPrice}</Text>
                     <TextInput 
                         style={[styles.input, { marginBottom: 15, backgroundColor: theme.background, color: theme.text, borderColor: theme.background === '#121212' ? '#333' : '#ccc' }]} 
                         value={cost} 
@@ -926,7 +1264,7 @@ const ProductDetailsModal = ({ visible, onClose, product, salesData, onSaveDetai
                         keyboardType="numeric" 
                     />
 
-                    <Text style={{ marginBottom: 5, fontWeight: 'bold', color: theme.text }}>Supplier Name:</Text>
+                    <Text style={{ marginBottom: 5, fontWeight: 'bold', color: theme.text }}>{t.supplierName}</Text>
                     <TextInput 
                         style={[styles.input, { marginBottom: 15, backgroundColor: theme.background, color: theme.text, borderColor: theme.background === '#121212' ? '#333' : '#ccc' }]} 
                         value={supplier} 
@@ -935,10 +1273,10 @@ const ProductDetailsModal = ({ visible, onClose, product, salesData, onSaveDetai
                         placeholderTextColor="#888"
                     />
 
-                    <Text style={{ marginBottom: 5, fontWeight: 'bold', color: theme.text }}>Expiry Date:</Text>
+                    <Text style={{ marginBottom: 5, fontWeight: 'bold', color: theme.text }}>{t.expiryDate}</Text>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 }}>
                         <View style={{ width: '30%' }}>
-                            <Text style={{ fontSize: 10, color: '#888', marginBottom: 2 }}>Year</Text>
+                            <Text style={{ fontSize: 10, color: '#888', marginBottom: 2 }}>{t.year}</Text>
                             <TextInput 
                                 style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.background === '#121212' ? '#333' : '#ccc' }]} 
                                 value={expYear} 
@@ -950,7 +1288,7 @@ const ProductDetailsModal = ({ visible, onClose, product, salesData, onSaveDetai
                             />
                         </View>
                         <View style={{ width: '30%' }}>
-                            <Text style={{ fontSize: 10, color: '#888', marginBottom: 2 }}>Month</Text>
+                            <Text style={{ fontSize: 10, color: '#888', marginBottom: 2 }}>{t.month}</Text>
                             <TextInput 
                                 style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.background === '#121212' ? '#333' : '#ccc' }]} 
                                 value={expMonth} 
@@ -962,7 +1300,7 @@ const ProductDetailsModal = ({ visible, onClose, product, salesData, onSaveDetai
                             />
                         </View>
                         <View style={{ width: '30%' }}>
-                            <Text style={{ fontSize: 10, color: '#888', marginBottom: 2 }}>Day</Text>
+                            <Text style={{ fontSize: 10, color: '#888', marginBottom: 2 }}>{t.day}</Text>
                             <TextInput 
                                 style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.background === '#121212' ? '#333' : '#ccc' }]} 
                                 value={expDay} 
@@ -976,15 +1314,15 @@ const ProductDetailsModal = ({ visible, onClose, product, salesData, onSaveDetai
                     </View>
 
                     <View style={[styles.statsContainer, { backgroundColor: theme.background }]}>
-                        <Text style={{ fontWeight: 'bold', marginBottom: 5, fontSize: 16 }}>📊 Product Analytics</Text>
-                        <Text style={{ color: theme.text }}>📦 Total Units Sold: <Text style={{ fontWeight: 'bold' }}>{totalSold}</Text></Text>
-                        <Text style={{ color: theme.text }}>💰 Est. Revenue: <Text style={{ fontWeight: 'bold', color: colors.primary }}>₱{revenue.toFixed(2)}</Text></Text>
-                        <Text style={{ color: theme.text }}>📉 Current Stock: <Text style={{ fontWeight: 'bold' }}>{product.stock}</Text></Text>
+                        <Text style={{ fontWeight: 'bold', marginBottom: 5, fontSize: 16 }}>{t.productAnalytics}</Text>
+                        <Text style={{ color: theme.text }}>{t.totalUnitsSold} <Text style={{ fontWeight: 'bold' }}>{totalSold}</Text></Text>
+                        <Text style={{ color: theme.text }}>{t.estRevenue} <Text style={{ fontWeight: 'bold', color: colors.primary }}>₱{revenue.toFixed(2)}</Text></Text>
+                        <Text style={{ color: theme.text }}>{t.currentStock} <Text style={{ fontWeight: 'bold' }}>{product.stock}</Text></Text>
                     </View>
 
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                        <View style={{ width: '45%' }}><Button title="Cancel" onPress={onClose} color="#888" /></View>
-                        <View style={{ width: '45%' }}><Button title="Save" onPress={handleSave} color={colors.primary} /></View>
+                        <View style={{ width: '45%' }}><Button title={t.cancel} onPress={onClose} color="#888" /></View>
+                        <View style={{ width: '45%' }}><Button title={t.save} onPress={handleSave} color={colors.primary} /></View>
                     </View>
                 </View>
             </View>
@@ -993,7 +1331,8 @@ const ProductDetailsModal = ({ visible, onClose, product, salesData, onSaveDetai
 };
 
 // 2.7 Stat Details Modal (New Component)
-const StatDetailsModal = ({ visible, onClose, type, analytics, theme }) => {
+const StatDetailsModal = ({ visible, onClose, type, analytics, theme, language }) => {
+    const t = translations[language];
     const [filter, setFilter] = useState('7d'); // '7d' | '30d'
     const [selectedProductId, setSelectedProductId] = useState('all');
     const [breakdown, setBreakdown] = useState(null); // Store clicked day's data
@@ -1012,12 +1351,12 @@ const StatDetailsModal = ({ visible, onClose, type, analytics, theme }) => {
 
     const getTitle = () => {
         switch (type) {
-            case 'revenue': return '💰 Revenue History';
-            case 'expenses': return '💸 Expense History';
-            case 'units': return '📦 Units Sold History';
-            case 'lowStock': return '⚠️ Low Stock Items';
-            case 'topItem': return '🏆 Top Seller';
-            case 'profit': return '📈 Net Profit History';
+            case 'revenue': return `💰 ${t.revenue}`;
+            case 'expenses': return `💸 ${t.expenses}`;
+            case 'units': return `📦 ${t.unitsSold}`;
+            case 'lowStock': return `⚠️ ${t.lowStock}`;
+            case 'topItem': return `🏆 ${t.topSeller}`;
+            case 'profit': return `📈 ${t.netProfit}`;
             default: return 'Details';
         }
     };
@@ -1136,18 +1475,18 @@ const StatDetailsModal = ({ visible, onClose, type, analytics, theme }) => {
 
                     {type !== 'lowStock' && (
                         <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 15 }}>
-                            <TouchableOpacity onPress={() => setFilter('7d')} style={{ paddingVertical: 6, paddingHorizontal: 12, backgroundColor: filter === '7d' ? colors.primary : theme.background, borderRadius: 20, marginRight: 10 }}>
-                                <Text style={{ color: filter === '7d' ? 'white' : theme.text, fontWeight: 'bold' }}>Last 7 Days</Text>
+                            <TouchableOpacity onPress={() => setFilter('7d')} style={{ paddingVertical: 6, paddingHorizontal: 12, backgroundColor: filter === '7d' ? colors.primary : theme.background, borderRadius: 20, marginRight: 10, minWidth: 100, alignItems: 'center' }}>
+                                <Text style={{ color: filter === '7d' ? 'white' : theme.text, fontWeight: 'bold' }}>{t.last7Days}</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={() => setFilter('30d')} style={{ paddingVertical: 6, paddingHorizontal: 12, backgroundColor: filter === '30d' ? colors.primary : theme.background, borderRadius: 20 }}>
-                                <Text style={{ color: filter === '30d' ? 'white' : theme.text, fontWeight: 'bold' }}>Last 30 Days</Text>
+                            <TouchableOpacity onPress={() => setFilter('30d')} style={{ paddingVertical: 6, paddingHorizontal: 12, backgroundColor: filter === '30d' ? colors.primary : theme.background, borderRadius: 20, minWidth: 100, alignItems: 'center' }}>
+                                <Text style={{ color: filter === '30d' ? 'white' : theme.text, fontWeight: 'bold' }}>{t.last30Days}</Text>
                             </TouchableOpacity>
                         </View>
                     )}
 
                     {type === 'units' && (
                         <View style={{ marginHorizontal: 10, marginBottom: 15, borderWidth: 1, borderColor: theme.background === '#121212' ? '#444' : '#ccc', borderRadius: 8 }}>
-                            <Text style={{ position: 'absolute', top: -10, left: 10, backgroundColor: theme.card, paddingHorizontal: 5, fontSize: 12, color: theme.text }}>Filter by Product</Text>
+                            <Text style={{ position: 'absolute', top: -10, left: 10, backgroundColor: theme.card, paddingHorizontal: 5, fontSize: 12, color: theme.text }}>{t.filterByProduct}</Text>
                             <Picker
                                 selectedValue={selectedProductId}
                                 onValueChange={(itemValue) => setSelectedProductId(itemValue)}
@@ -1155,7 +1494,7 @@ const StatDetailsModal = ({ visible, onClose, type, analytics, theme }) => {
                                 dropdownIconColor={theme.text}
                                 itemStyle={{ color: theme.text }}
                             >
-                                <Picker.Item label="Show All Products" value="all" />
+                                <Picker.Item label={t.showAllProducts} value="all" />
                                 {Object.entries(analytics.itemsMap)
                                     .sort(([, a], [, b]) => a.name.localeCompare(b.name))
                                     .map(([id, item]) => (
@@ -1189,7 +1528,7 @@ const StatDetailsModal = ({ visible, onClose, type, analytics, theme }) => {
                                         bezier 
                                         onDataPointClick={handleDataPointClick}
                                     />
-                                    <Text style={{ textAlign: 'center', fontSize: 12, color: '#888', marginTop: 5 }}>👆 Tap a point to see daily breakdown</Text>
+                                    <Text style={{ textAlign: 'center', fontSize: 12, color: '#888', marginTop: 5 }}>{t.tapPoint}</Text>
                                 </View>
                             )}
                         </ScrollView>
@@ -1197,14 +1536,14 @@ const StatDetailsModal = ({ visible, onClose, type, analytics, theme }) => {
 
                     {breakdown && (
                         <View style={{ marginTop: 15, padding: 15, backgroundColor: theme.background, borderRadius: 8, maxHeight: 150 }}>
-                            <Text style={{ fontWeight: 'bold', color: theme.text, marginBottom: 8, fontSize: 16 }}>📅 Sales on {breakdown.date}</Text>
+                            <Text style={{ fontWeight: 'bold', color: theme.text, marginBottom: 8, fontSize: 16 }}>{t.salesOn} {breakdown.date}</Text>
                             <ScrollView nestedScrollEnabled>
                                 {breakdown.items.length > 0 ? breakdown.items.map((item, idx) => (
                                     <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
                                         <Text style={{ color: theme.text }}>{item.name}</Text>
                                         <Text style={{ fontWeight: 'bold', color: theme.text }}>x{item.qty}</Text>
                                     </View>
-                                )) : <Text style={{ color: '#888' }}>No sales recorded.</Text>}
+                                )) : <Text style={{ color: '#888' }}>{t.noSales}</Text>}
                             </ScrollView>
                         </View>
                     )}
@@ -1215,19 +1554,20 @@ const StatDetailsModal = ({ visible, onClose, type, analytics, theme }) => {
 };
 
 // 2.8 Bulk Action Modal (New Component)
-const BulkActionModal = ({ visible, onClose, onConfirm, actionType, itemName, qty, setQty, theme }) => {
+const BulkActionModal = ({ visible, onClose, onConfirm, actionType, itemName, qty, setQty, theme, language }) => {
+    const t = translations[language];
     return (
         <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={onClose}>
             <View style={styles.modalOverlay}>
                 <View style={[styles.modalContent, { backgroundColor: theme.card, width: '85%' }]}>
                     <Text style={[styles.modalTitle, { color: actionType === 'sell' ? colors.danger : colors.primary }]}>
-                        {actionType === 'sell' ? 'Bulk Sell' : 'Bulk Add'}
+                        {actionType === 'sell' ? t.bulkSell : t.bulkAdd}
                     </Text>
                     <Text style={{ textAlign: 'center', marginBottom: 15, color: theme.text, fontSize: 16 }}>
                         {itemName}
                     </Text>
 
-                    <Text style={{ marginBottom: 5, fontWeight: 'bold', color: '#555' }}>Enter Quantity:</Text>
+                    <Text style={{ marginBottom: 5, fontWeight: 'bold', color: theme.text }}>{t.enterQuantity}</Text>
                     <TextInput
                         style={[styles.input, { marginBottom: 20, backgroundColor: theme.background, color: theme.text, borderColor: theme.background === '#121212' ? '#333' : '#ccc', textAlign: 'center', fontSize: 24, height: 60 }]}
                         value={qty}
@@ -1239,9 +1579,9 @@ const BulkActionModal = ({ visible, onClose, onConfirm, actionType, itemName, qt
                     />
 
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                        <View style={{ width: '45%' }}><Button title="Cancel" onPress={onClose} color="#888" /></View>
+                        <View style={{ width: '45%' }}><Button title={t.cancel} onPress={onClose} color="#888" /></View>
                         <View style={{ width: '45%' }}>
-                            <Button title="Confirm" onPress={onConfirm} color={actionType === 'sell' ? colors.danger : colors.primary} />
+                            <Button title={t.confirm} onPress={onConfirm} color={actionType === 'sell' ? colors.danger : colors.primary} />
                         </View>
                     </View>
                 </View>
@@ -1251,19 +1591,20 @@ const BulkActionModal = ({ visible, onClose, onConfirm, actionType, itemName, qt
 };
 
 // 2.9 Password Confirmation Modal (New Component)
-const PasswordConfirmModal = ({ visible, onClose, onConfirm, password, setPassword, theme }) => {
+const PasswordConfirmModal = ({ visible, onClose, onConfirm, password, setPassword, theme, language }) => {
+    const t = translations[language];
     return (
         <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={onClose}>
             <View style={styles.modalOverlay}>
                 <View style={[styles.modalContent, { backgroundColor: theme.card, width: '85%' }]}>
                     <Text style={[styles.modalTitle, { color: colors.danger }]}>
-                        Enter Password to Confirm
+                        {t.enterPasswordConfirm}
                     </Text>
                     <Text style={{ textAlign: 'center', marginBottom: 15, color: theme.text, fontSize: 14 }}>
-                        For your security, please enter your password to delete all data. This action cannot be undone.
+                        {t.securityMessage}
                     </Text>
 
-                    <Text style={{ marginBottom: 5, fontWeight: 'bold', color: theme.text }}>Password:</Text>
+                    <Text style={{ marginBottom: 5, fontWeight: 'bold', color: theme.text }}>{t.passwordPlaceholder}:</Text>
                     <TextInput
                         style={[styles.input, { marginBottom: 20, backgroundColor: theme.background, color: theme.text, borderColor: theme.background === '#121212' ? '#333' : '#ccc' }]}
                         value={password}
@@ -1276,9 +1617,9 @@ const PasswordConfirmModal = ({ visible, onClose, onConfirm, password, setPasswo
                     />
 
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                        <View style={{ width: '45%' }}><Button title="Cancel" onPress={onClose} color="#888" /></View>
+                        <View style={{ width: '45%' }}><Button title={t.cancel} onPress={onClose} color="#888" /></View>
                         <View style={{ width: '45%' }}>
-                            <Button title="Confirm & Delete" onPress={onConfirm} color={colors.danger} />
+                            <Button title={t.confirmDelete} onPress={onConfirm} color={colors.danger} />
                         </View>
                     </View>
                 </View>
@@ -1288,7 +1629,8 @@ const PasswordConfirmModal = ({ visible, onClose, onConfirm, password, setPasswo
 };
 
 // 3. Analytics Dashboard Screen
-const AnalyticsScreen = ({ analytics, salesHistory, profitHistory, aiSettings, theme, onResetPress }) => {
+const AnalyticsScreen = ({ analytics, salesHistory, profitHistory, aiSettings, theme, onResetPress, language }) => {
+    const t = translations[language];
     const [selectedStat, setSelectedStat] = useState(null);
     const screenWidth = Dimensions.get('window').width - 40;
     const chartWidth = Math.max(screenWidth, salesHistory.labels.length * 50);
@@ -1472,22 +1814,22 @@ const AnalyticsScreen = ({ analytics, salesHistory, profitHistory, aiSettings, t
         <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
             <View style={{ margin: 16, marginBottom: 4, flexDirection: 'row', justifyContent: 'space-between' }}>
                 <View style={{ flex: 1, marginRight: 8 }}>
-                    <Button title="🖨️ Export PDF" onPress={printAnalytics} color={colors.accent} />
+                    <Button title={t.exportPdf} onPress={printAnalytics} color={colors.accent} />
                 </View>
                 <View style={{ flex: 1, marginLeft: 8 }}>
-                    <Button title="🗑️ Reset Data" onPress={onResetPress} color={colors.danger} />
+                    <Button title={t.resetData} onPress={onResetPress} color={colors.danger} />
                 </View>
             </View>
 
             {/* Stats Grid */}
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 8, marginTop: 10 }}>
                 {[
-                    { title: "Revenue", value: `₱${analytics.totalRevenue}`, icon: "attach-money", color: colors.primary, type: 'revenue' },
-                    { title: "Expenses", value: `₱${analytics.totalExpenses}`, icon: "money-off", color: colors.danger, type: 'expenses' },
-                    { title: "Net Profit", value: `₱${analytics.netProfit}`, icon: "trending-up", color: parseFloat(analytics.netProfit) >= 0 ? colors.primary : colors.danger, type: 'profit' },
-                    { title: "Units Sold", value: analytics.totalSales, icon: "shopping-cart", color: colors.accent, type: 'units' },
-                    { title: "Low Stock", value: analytics.lowStock?.length || 0, icon: "warning", color: analytics.lowStock?.length > 0 ? colors.danger : colors.primary, type: 'lowStock' },
-                    { title: "Top Seller", value: analytics.top3?.[0] || 'N/A', icon: "star", color: "#FFD700", type: 'topItem' }
+                    { title: t.revenue, value: `₱${analytics.totalRevenue}`, icon: "attach-money", color: colors.primary, type: 'revenue' },
+                    { title: t.expenses, value: `₱${analytics.totalExpenses}`, icon: "money-off", color: colors.danger, type: 'expenses' },
+                    { title: t.netProfit, value: `₱${analytics.netProfit}`, icon: "trending-up", color: parseFloat(analytics.netProfit) >= 0 ? colors.primary : colors.danger, type: 'profit' },
+                    { title: t.unitsSold, value: analytics.totalSales, icon: "shopping-cart", color: colors.accent, type: 'units' },
+                    { title: t.lowStock, value: analytics.lowStock?.length || 0, icon: "warning", color: analytics.lowStock?.length > 0 ? colors.danger : colors.primary, type: 'lowStock' },
+                    { title: t.topSeller, value: analytics.top3?.[0] || 'N/A', icon: "star", color: "#FFD700", type: 'topItem' }
                 ].map((stat, index) => (
                     <View key={index} style={{ width: '50%', padding: 6 }}>
                         {renderStatCard(stat)}
@@ -1497,17 +1839,17 @@ const AnalyticsScreen = ({ analytics, salesHistory, profitHistory, aiSettings, t
 
             {/* Transaction History List */}
             {renderCollapsibleSection(
-                "💸 Transaction History",
+                t.transactionHistory,
                 showExpenses,
                 () => setShowExpenses(!showExpenses),
                 <View>
                     {/* Date Filter */}
                     <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 10 }}>
-                        <TouchableOpacity onPress={() => setHistoryFilter('7d')} style={{ paddingVertical: 4, paddingHorizontal: 12, backgroundColor: historyFilter === '7d' ? colors.primary : theme.background, borderRadius: 15, marginRight: 8 }}>
-                            <Text style={{ color: historyFilter === '7d' ? 'white' : theme.text, fontSize: 12, fontWeight: 'bold' }}>Last 7 Days</Text>
+                        <TouchableOpacity onPress={() => setHistoryFilter('7d')} style={{ paddingVertical: 4, paddingHorizontal: 12, backgroundColor: historyFilter === '7d' ? colors.primary : theme.background, borderRadius: 15, marginRight: 8, minWidth: 100, alignItems: 'center' }}>
+                            <Text style={{ color: historyFilter === '7d' ? 'white' : theme.text, fontSize: 12, fontWeight: 'bold' }}>{t.last7Days}</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={() => setHistoryFilter('30d')} style={{ paddingVertical: 4, paddingHorizontal: 12, backgroundColor: historyFilter === '30d' ? colors.primary : theme.background, borderRadius: 15 }}>
-                            <Text style={{ color: historyFilter === '30d' ? 'white' : theme.text, fontSize: 12, fontWeight: 'bold' }}>Last 30 Days</Text>
+                        <TouchableOpacity onPress={() => setHistoryFilter('30d')} style={{ paddingVertical: 4, paddingHorizontal: 12, backgroundColor: historyFilter === '30d' ? colors.primary : theme.background, borderRadius: 15, minWidth: 100, alignItems: 'center' }}>
+                            <Text style={{ color: historyFilter === '30d' ? 'white' : theme.text, fontSize: 12, fontWeight: 'bold' }}>{t.last30Days}</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -1539,13 +1881,13 @@ const AnalyticsScreen = ({ analytics, salesHistory, profitHistory, aiSettings, t
                         }}
                         style={{ maxHeight: 400 }} // To make it scrollable within the ScrollView
                     />
-                    ) : <Text style={{ color: theme.text === '#e0e0e0' ? '#aaa' : '#666', fontStyle: 'italic', textAlign: 'center', marginVertical: 10 }}>No transactions in this period.</Text>}
+                    ) : <Text style={{ color: theme.text === '#e0e0e0' ? '#aaa' : '#666', fontStyle: 'italic', textAlign: 'center', marginVertical: 10 }}>{t.noSales}</Text>}
                 </View>
             )}
 
             {/* AI Recommendations */}
             {renderCollapsibleSection(
-                "💡 Tindahan AI Suggestions",
+                t.aiSuggestions,
                 showSuggestions,
                 () => setShowSuggestions(!showSuggestions),
                 getFilteredSuggestions().map((line, index) => (
@@ -1558,7 +1900,7 @@ const AnalyticsScreen = ({ analytics, salesHistory, profitHistory, aiSettings, t
 
             {/* Sales History Chart */}
             <View style={[styles.chartCard, { backgroundColor: theme.card }]}>
-                <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 10, color: theme.text }}>📈 Sales Trend (Last 7 Days)</Text>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 10, color: theme.text }}>{t.salesTrend}</Text>
                 {salesHistory.data.length > 0 ? (
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                         <LineChart
@@ -1579,7 +1921,7 @@ const AnalyticsScreen = ({ analytics, salesHistory, profitHistory, aiSettings, t
             {/* Pie Chart: Sales Distribution */}
             {analytics.salesDistribution && analytics.salesDistribution.length > 0 && (
                 <View style={[styles.chartCard, { backgroundColor: theme.card }]}>
-                    <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 10, color: theme.text }}>🍰 Top Products Share</Text>
+                    <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 10, color: theme.text }}>{t.topProductsShare}</Text>
                     <PieChart
                         data={analytics.salesDistribution}
                         width={screenWidth - 40}
@@ -1599,6 +1941,7 @@ const AnalyticsScreen = ({ analytics, salesHistory, profitHistory, aiSettings, t
                 type={selectedStat} 
                 analytics={analytics} 
                 theme={theme} 
+                language={language}
             />
         </ScrollView>
     );
@@ -1615,8 +1958,10 @@ const AddProductScreen = ({
     expenseDescription, setExpenseDescription,
     expenseAmount, setExpenseAmount,
     addExpense,
-    theme
+    theme,
+    language
 }) => {
+    const t = translations[language];
     const [mode, setMode] = useState('product'); // 'product' | 'expense'
 
     return (
@@ -1627,13 +1972,13 @@ const AddProductScreen = ({
                     onPress={() => setMode('product')}
                     style={{ flex: 1, paddingVertical: 10, backgroundColor: mode === 'product' ? theme.card : 'transparent', borderRadius: 10, alignItems: 'center', elevation: mode === 'product' ? 2 : 0, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 1 }}
                 >
-                    <Text style={{ fontWeight: 'bold', color: mode === 'product' ? colors.primary : '#888' }}>New Product</Text>
+                    <Text style={{ fontWeight: 'bold', color: mode === 'product' ? colors.primary : '#888' }}>{t.newProduct}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
                     onPress={() => setMode('expense')}
                     style={{ flex: 1, paddingVertical: 10, backgroundColor: mode === 'expense' ? theme.card : 'transparent', borderRadius: 10, alignItems: 'center', elevation: mode === 'expense' ? 2 : 0, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 1 }}
                 >
-                    <Text style={{ fontWeight: 'bold', color: mode === 'expense' ? colors.danger : '#888' }}>Log Expense</Text>
+                    <Text style={{ fontWeight: 'bold', color: mode === 'expense' ? colors.danger : '#888' }}>{t.logExpense}</Text>
                 </TouchableOpacity>
             </View>
             
@@ -1644,11 +1989,11 @@ const AddProductScreen = ({
                             <View style={{ backgroundColor: colors.primary + '15', padding: 10, borderRadius: 50, marginRight: 10 }}>
                                 <MaterialIcons name="inventory" size={24} color={colors.primary} />
                             </View>
-                            <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.text }}>Product Details</Text>
+                            <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.text }}>{t.productDetails}</Text>
                         </View>
 
                         <View style={{ marginBottom: 15 }}>
-                            <Text style={{ fontSize: 12, color: theme.text, marginBottom: 5, fontWeight: '600' }}>PRODUCT NAME</Text>
+                            <Text style={{ fontSize: 12, color: theme.text, marginBottom: 5, fontWeight: '600' }}>{t.productName}</Text>
                             <TextInput
                                 value={newProductName}
                                 onChangeText={setNewProductName}
@@ -1659,7 +2004,7 @@ const AddProductScreen = ({
                         </View>
 
                         <View style={{ marginBottom: 15 }}>
-                            <Text style={{ fontSize: 12, color: theme.text, marginBottom: 5, fontWeight: '600' }}>INITIAL STOCK</Text>
+                            <Text style={{ fontSize: 12, color: theme.text, marginBottom: 5, fontWeight: '600' }}>{t.initialStock}</Text>
                             <TextInput
                                 value={newProductStock}
                                 onChangeText={setNewProductStock}
@@ -1672,7 +2017,7 @@ const AddProductScreen = ({
 
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 }}>
                             <View style={{ width: '48%' }}>
-                                <Text style={{ fontSize: 12, color: theme.text, marginBottom: 5, fontWeight: '600' }}>SELLING PRICE</Text>
+                                <Text style={{ fontSize: 12, color: theme.text, marginBottom: 5, fontWeight: '600' }}>{t.sellingPrice}</Text>
                                 <TextInput
                                     value={newProductPrice}
                                     onChangeText={setNewProductPrice}
@@ -1683,7 +2028,7 @@ const AddProductScreen = ({
                                 />
                             </View>
                             <View style={{ width: '48%' }}>
-                                <Text style={{ fontSize: 12, color: theme.text, marginBottom: 5, fontWeight: '600' }}>COST PRICE</Text>
+                                <Text style={{ fontSize: 12, color: theme.text, marginBottom: 5, fontWeight: '600' }}>{t.costPrice}</Text>
                                 <TextInput
                                     value={newProductCost}
                                     onChangeText={setNewProductCost}
@@ -1696,7 +2041,7 @@ const AddProductScreen = ({
                         </View>
 
                         <View style={{ marginBottom: 20 }}>
-                            <Text style={{ fontSize: 12, color: theme.text, marginBottom: 5, fontWeight: '600' }}>SUPPLIER (OPTIONAL)</Text>
+                            <Text style={{ fontSize: 12, color: theme.text, marginBottom: 5, fontWeight: '600' }}>{t.supplier}</Text>
                             <TextInput
                                 value={newProductSupplier}
                                 onChangeText={setNewProductSupplier}
@@ -1707,10 +2052,10 @@ const AddProductScreen = ({
                         </View>
 
                         <View style={{ marginBottom: 20 }}>
-                            <Text style={{ fontSize: 12, color: theme.text, marginBottom: 5, fontWeight: '600' }}>EXPIRY DATE (OPTIONAL)</Text>
+                            <Text style={{ fontSize: 12, color: theme.text, marginBottom: 5, fontWeight: '600' }}>{t.expiryDate}</Text>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                                 <View style={{ width: '30%' }}>
-                                    <Text style={{ fontSize: 10, color: '#888', marginBottom: 2 }}>Year</Text>
+                                    <Text style={{ fontSize: 10, color: '#888', marginBottom: 2 }}>{t.year}</Text>
                                     <TextInput
                                         value={newExpYear}
                                         onChangeText={setNewExpYear}
@@ -1722,7 +2067,7 @@ const AddProductScreen = ({
                                     />
                                 </View>
                                 <View style={{ width: '30%' }}>
-                                    <Text style={{ fontSize: 10, color: '#888', marginBottom: 2 }}>Month</Text>
+                                    <Text style={{ fontSize: 10, color: '#888', marginBottom: 2 }}>{t.month}</Text>
                                     <TextInput
                                         value={newExpMonth}
                                         onChangeText={setNewExpMonth}
@@ -1734,7 +2079,7 @@ const AddProductScreen = ({
                                     />
                                 </View>
                                 <View style={{ width: '30%' }}>
-                                    <Text style={{ fontSize: 10, color: '#888', marginBottom: 2 }}>Day</Text>
+                                    <Text style={{ fontSize: 10, color: '#888', marginBottom: 2 }}>{t.day}</Text>
                                     <TextInput
                                         value={newExpDay}
                                         onChangeText={setNewExpDay}
@@ -1753,7 +2098,7 @@ const AddProductScreen = ({
                             style={{ backgroundColor: colors.primary, padding: 15, borderRadius: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', elevation: 2 }}
                         >
                             <MaterialIcons name="add-circle-outline" size={20} color="white" style={{ marginRight: 8 }} />
-                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Add to Inventory</Text>
+                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>{t.addToInventory}</Text>
                         </TouchableOpacity>
                     </View>
                 ) : (
@@ -1762,11 +2107,11 @@ const AddProductScreen = ({
                             <View style={{ backgroundColor: colors.danger + '15', padding: 10, borderRadius: 50, marginRight: 10 }}>
                                 <MaterialIcons name="receipt-long" size={24} color={colors.danger} />
                             </View>
-                            <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.text }}>Expense Details</Text>
+                            <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.text }}>{t.expenseDetails}</Text>
                         </View>
                         
                         <View style={{ marginBottom: 15 }}>
-                            <Text style={{ fontSize: 12, color: theme.text, marginBottom: 5, fontWeight: '600' }}>DESCRIPTION</Text>
+                            <Text style={{ fontSize: 12, color: theme.text, marginBottom: 5, fontWeight: '600' }}>{t.description}</Text>
                             <TextInput
                                 value={expenseDescription}
                                 onChangeText={setExpenseDescription}
@@ -1777,7 +2122,7 @@ const AddProductScreen = ({
                         </View>
 
                         <View style={{ marginBottom: 20 }}>
-                            <Text style={{ fontSize: 12, color: theme.text, marginBottom: 5, fontWeight: '600' }}>AMOUNT</Text>
+                            <Text style={{ fontSize: 12, color: theme.text, marginBottom: 5, fontWeight: '600' }}>{t.amount}</Text>
                             <TextInput
                                 value={expenseAmount}
                                 onChangeText={setExpenseAmount}
@@ -1793,7 +2138,7 @@ const AddProductScreen = ({
                             style={{ backgroundColor: colors.danger, padding: 15, borderRadius: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', elevation: 2 }}
                         >
                             <MaterialIcons name="remove-circle-outline" size={20} color="white" style={{ marginRight: 8 }} />
-                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Log Expense</Text>
+                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>{t.logExpense}</Text>
                         </TouchableOpacity>
                     </View>
                 )}
@@ -1810,8 +2155,10 @@ export default function Index() {
     const [isOffline, setIsOffline] = useState(false);
     const [networkEnabled, setNetworkEnabled] = useState(true);
     const [isDarkMode, setIsDarkMode] = useState(false);
+    const [language, setLanguage] = useState('en');
 
     const theme = isDarkMode ? darkColors : colors;
+    const t = translations[language];
     
     // Modal state
     const [selectedProduct, setSelectedProduct] = useState(null);
@@ -1922,7 +2269,7 @@ export default function Index() {
             setEmail('');
             setPassword('');
         } catch (e) {
-            Alert.alert('Login failed', e.message);
+            Alert.alert(t.loginFailed, e.message);
         }
     };
 
@@ -1932,14 +2279,14 @@ export default function Index() {
             setEmail('');
             setPassword('');
         } catch (e) {
-            Alert.alert('Registration failed', e.message);
+            Alert.alert(t.regFailed, e.message);
         }
     };
 
     const handleLogout = () => {
         Alert.alert(
-            "Confirm Logout",
-            "Are you sure you want to log out?",
+            t.confirmLogout,
+            t.logoutMessage,
             [
                 { text: "Cancel", style: "cancel" },
                 { text: "Logout", style: "destructive", onPress: async () => await signOut(auth) }
@@ -1954,7 +2301,7 @@ export default function Index() {
 
     const handleConfirmReset = async () => {
         if (!auth.currentUser || !resetPassword) {
-            Alert.alert("Error", "Password cannot be empty.");
+            Alert.alert(t.error, t.passwordEmpty);
             return;
         }
 
@@ -1972,10 +2319,10 @@ export default function Index() {
             setIsResetModalVisible(false);
             setResetPassword('');
             setRefreshTrigger(prev => prev + 1);
-            Alert.alert("Reset Complete", "All data has been cleared.");
+            Alert.alert(t.resetComplete, t.resetCompleteMsg);
 
         } catch (e) {
-            Alert.alert("Authentication Failed", e.message);
+            Alert.alert(t.authFailed, e.message);
             console.error("Re-authentication failed:", e);
         }
     };
@@ -1984,7 +2331,7 @@ export default function Index() {
         if (!user) return;
         const item = items.find(i => i.id === id);
         if (!item || item.stock <= 0) {
-            Alert.alert("Out of Stock", "This item is out of stock.");
+            Alert.alert(t.outOfStock, t.outOfStockMsg);
             return;
         }
 
@@ -2040,14 +2387,14 @@ export default function Index() {
         }
 
         if (!name || isNaN(stock) || stock < 0) {
-            Alert.alert('Validation Error', 'Please enter a valid name and non-negative stock.');
+            Alert.alert(t.validationError, t.validationMsg);
             return;
         }
 
         // Check for duplicates before adding
         const duplicate = items.some(item => item.name.trim().toLowerCase() === name.toLowerCase());
         if (duplicate) {
-            Alert.alert('Duplicate Product', 'A product with this name already exists. Please use the existing entry.');
+            Alert.alert(t.duplicateProduct, t.duplicateMsg);
             return;
         }
 
@@ -2085,7 +2432,7 @@ export default function Index() {
         if (!user) return;
         const amount = parseFloat(expenseAmount);
         if (!expenseDescription.trim() || isNaN(amount) || amount < 0) {
-            Alert.alert('Validation Error', 'Please enter a valid description and amount.');
+            Alert.alert(t.validationError, 'Please enter a valid description and amount.');
             return;
         }
 
@@ -2098,14 +2445,14 @@ export default function Index() {
         setExpenseDescription('');
         setExpenseAmount('');
         setRefreshTrigger(prev => prev + 1); // Refresh analytics
-        Alert.alert('Success', 'Expense logged successfully.');
+        Alert.alert('Success', t.expenseLogged);
     };
 
     const deleteProduct = (id) => {
         const product = items.find(item => item.id === id);
         Alert.alert(
-            'Delete Product',
-            `Are you sure you want to delete "${product?.name}"? This cannot be undone.`,
+            t.deleteProductTitle,
+            `${t.deleteProductMsg} "${product?.name}"? ${t.thisCannotBeUndone}`,
             [
                 { text: 'Cancel', style: 'cancel' },
                 {
@@ -2135,7 +2482,7 @@ export default function Index() {
         const priceNum = parseFloat(newPrice);
         const costNum = parseFloat(newCost);
         if (isNaN(priceNum) || priceNum < 0 || isNaN(costNum) || costNum < 0) {
-            Alert.alert("Invalid Input", "Please enter valid positive numbers for price and cost.");
+            Alert.alert(t.invalidInput, t.invalidInputMsg);
             return;
         }
         setItems(prev => prev.map(item => item.id === id ? { ...item, price: priceNum, cost: costNum, supplier: newSupplier, expiryDate: newExpiry } : item));
@@ -2152,7 +2499,7 @@ export default function Index() {
         const qty = parseInt(bulkQty, 10);
 
         if (isNaN(qty) || qty <= 0) {
-            Alert.alert("Invalid Quantity", "Please enter a valid positive number.");
+            Alert.alert(t.invalidQuantity, t.invalidQuantityMsg);
             return;
         }
 
@@ -2160,7 +2507,7 @@ export default function Index() {
 
         if (type === 'sell') {
             if (item.stock < qty) {
-                Alert.alert("Not Enough Stock", `Cannot sell ${qty} units. Only ${item.stock} available.`);
+                Alert.alert(t.notEnoughStock, `${t.notEnoughStockMsg} ${qty} ${t.unitsOnly} ${item.stock} ${t.available}`);
                 return;
             }
             const newStock = (item.stock || 0) - qty;
@@ -2207,7 +2554,7 @@ export default function Index() {
     // --- Main Render ---
 
     if (!user) {
-        return <AuthScreen {...{ email, setEmail, password, setPassword, authMode, setAuthMode, handleLogin, handleRegister, theme }} />;
+        return <AuthScreen {...{ email, setEmail, password, setPassword, authMode, setAuthMode, handleLogin, handleRegister, theme, language }} />;
     }
 
     const totalItems = items.length;
@@ -2227,12 +2574,13 @@ export default function Index() {
                     expenseDescription, setExpenseDescription,
                     expenseAmount, setExpenseAmount,
                     addExpense,
-                    theme
+                    theme,
+                    language
                 }} />;
             case 'analytics':
-                return <AnalyticsScreen analytics={analytics} salesHistory={salesHistory} profitHistory={profitHistory} aiSettings={aiSettings} theme={theme} onResetPress={handleOpenResetModal} />;
+                return <AnalyticsScreen analytics={analytics} salesHistory={salesHistory} profitHistory={profitHistory} aiSettings={aiSettings} theme={theme} onResetPress={handleOpenResetModal} language={language} />;
             case 'chat':
-                return <AIChatScreen analytics={analytics} aiSettings={aiSettings} setAiSettings={setAiSettings} chatMessages={chatMessages} setChatMessages={setChatMessages} theme={theme} />;
+                return <AIChatScreen analytics={analytics} aiSettings={aiSettings} setAiSettings={setAiSettings} chatMessages={chatMessages} setChatMessages={setChatMessages} theme={theme} language={language} />;
             case 'inventory':
             default:
                 return (
@@ -2240,15 +2588,15 @@ export default function Index() {
                         {/* Search and Summary */}
                         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: theme.background }}>
                             <TextInput
-                                placeholder="🔍 Search Product..."
+                                placeholder={t.searchPlaceholder}
                                 placeholderTextColor="#888"
                                 value={search}
                                 onChangeText={setSearch}
                                 style={[styles.input, { flex: 1, marginRight: 12, backgroundColor: theme.card, color: theme.text, borderWidth: 0, elevation: 1 }]}
                             />
                             <View style={{ alignItems: 'flex-end', opacity: 0.8 }}>
-                                <Text style={{ fontSize: 11, color: theme.text }}>ITEMS: <Text style={{ fontWeight: 'bold' }}>{totalItems}</Text></Text>
-                                <Text style={{ fontSize: 11, color: theme.text }}>STOCK: <Text style={{ fontWeight: 'bold' }}>{totalStock}</Text></Text>
+                                <Text style={{ fontSize: 11, color: theme.text }}>{t.items}: <Text style={{ fontWeight: 'bold' }}>{totalItems}</Text></Text>
+                                <Text style={{ fontSize: 11, color: theme.text }}>{t.stock}: <Text style={{ fontWeight: 'bold' }}>{totalStock}</Text></Text>
                             </View>
                         </View>
                         
@@ -2265,6 +2613,7 @@ export default function Index() {
                                     onOpenDetails={handleOpenDetails}
                                     theme={theme}
                                     onBulkAction={handleBulkAction}
+                                    language={language}
                                 />
                             )}
                             ListEmptyComponent={() => (
@@ -2289,7 +2638,7 @@ export default function Index() {
                     onPress={() => setActiveTab(tab)}
                 >
                     <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
-                        {tab === 'inventory' ? '📦 POS' : tab === 'add' ? '➕ Add' : tab === 'analytics' ? '📊 Data' : '🤖 Chat'}
+                        {tab === 'inventory' ? t.posTab : tab === 'add' ? t.addTab : tab === 'analytics' ? t.dataTab : t.chatTab}
                     </Text>
                 </TouchableOpacity>
             ))}
@@ -2345,7 +2694,7 @@ export default function Index() {
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.background === '#121212' ? '#333' : '#eee' }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                 <MaterialIcons name={networkEnabled ? "wifi" : "wifi-off"} size={22} color={networkEnabled ? colors.primary : "#888"} style={{ marginRight: 12 }} />
-                                <Text style={{ color: theme.text, fontSize: 16 }}>Online Mode</Text>
+                                <Text style={{ color: theme.text, fontSize: 16 }}>{t.onlineMode}</Text>
                             </View>
                             <Switch
                                 value={networkEnabled}
@@ -2364,6 +2713,23 @@ export default function Index() {
                             <Text style={{ color: theme.text, fontSize: 16 }}>{isDarkMode ? "Dark Mode" : "Light Mode"}</Text>
                         </TouchableOpacity>
 
+                        {/* Language Selector */}
+                        <View style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.background === '#121212' ? '#333' : '#eee' }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                                <MaterialIcons name="language" size={22} color={colors.accent} style={{ marginRight: 12 }} />
+                                <Text style={{ color: theme.text, fontSize: 16 }}>{t.language}</Text>
+                            </View>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
+                                {['en', 'tl', 'ceb'].map(lang => (
+                                    <TouchableOpacity key={lang} onPress={() => setLanguage(lang)} style={{ padding: 5, backgroundColor: language === lang ? colors.primary + '20' : 'transparent', borderRadius: 5 }}>
+                                        <Text style={{ color: language === lang ? colors.primary : theme.text, fontWeight: language === lang ? 'bold' : 'normal' }}>
+                                            {lang === 'en' ? 'English' : lang === 'tl' ? 'Tagalog' : 'Bisaya'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+
                         {/* Logout */}
                         <TouchableOpacity 
                             onPress={() => { setIsMenuVisible(false); handleLogout(); }}
@@ -2379,7 +2745,7 @@ export default function Index() {
             {/* Offline Banner */}
             {(isOffline || !networkEnabled) && (
                 <View style={styles.offlineBanner}>
-                    <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>☁️ Offline Mode: Changes will sync when online</Text>
+                    <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>{t.offlineMode}</Text>
                 </View>
             )}
 
@@ -2399,6 +2765,7 @@ export default function Index() {
                 salesData={analytics?.salesByItem}
                 onSaveDetails={handleSaveDetails}
                 theme={theme}
+                language={language}
             />
 
             {/* Bulk Action Modal */}
@@ -2411,6 +2778,7 @@ export default function Index() {
                 qty={bulkQty}
                 setQty={setBulkQty}
                 theme={theme}
+                language={language}
             />
 
             {/* Password Confirmation Modal for Reset */}
@@ -2421,6 +2789,7 @@ export default function Index() {
                 password={resetPassword}
                 setPassword={setResetPassword}
                 theme={theme}
+                language={language}
             />
         </View>
     );
