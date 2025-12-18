@@ -1,16 +1,17 @@
-import { View, Text, FlatList, Button, TextInput, Alert, Dimensions, ScrollView, StyleSheet, TouchableOpacity, Modal, Switch, KeyboardAvoidingView, Platform, ActivityIndicator, Image } from 'react-native';
-import { useState, useEffect } from 'react';
-import { LineChart, PieChart, BarChart } from 'react-native-chart-kit';
-import { Picker } from '@react-native-picker/picker'; // Keep for compatibility if needed elsewhere
 import { MaterialIcons } from '@expo/vector-icons';
+import { Picker } from '@react-native-picker/picker'; // Keep for compatibility if needed elsewhere
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Button, Dimensions, FlatList, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { BarChart, LineChart, PieChart } from 'react-native-chart-kit';
 
 // Firebase imports
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, getDocs, setDoc, doc, deleteDoc, updateDoc, onSnapshot, initializeFirestore, persistentLocalCache, disableNetwork, enableNetwork } from "firebase/firestore";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, initializeAuth, getReactNativePersistence, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
-import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+import { createUserWithEmailAndPassword, EmailAuthProvider, getReactNativePersistence, initializeAuth, reauthenticateWithCredential, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { addDoc, collection, deleteDoc, disableNetwork, doc, enableNetwork, getDocs, initializeFirestore, onSnapshot, persistentLocalCache, setDoc, updateDoc } from "firebase/firestore";
 
 // --- Configuration and Initialization (Keep these at the top) ---
 
@@ -1032,7 +1033,7 @@ const AuthScreen = ({ email, setEmail, password, setPassword, authMode, setAuthM
 };
 
 // 2. Product Card Component for FlatList
-const ProductCard = ({ item, sellItem, addItem, deleteProduct, onOpenDetails, theme, onBulkAction, language }) => {
+const ProductCard = ({ item, sellItem, addItem, deleteProduct, onOpenDetails, theme, onBulkAction, language, onEditImage }) => {
     const t = translations[language];
     const displayStock = item.stock || 0;
     const isLowStock = displayStock <= 5;
@@ -1040,8 +1041,18 @@ const ProductCard = ({ item, sellItem, addItem, deleteProduct, onOpenDetails, th
     return (
         <View style={[styles.productCard, { backgroundColor: theme.card, borderColor: theme.background === '#121212' ? '#333' : '#f0f0f0' }]}>
             {/* Header: Info & Stock Display */}
-            <TouchableOpacity onPress={() => onOpenDetails(item)} style={{ marginBottom: 15 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <View style={{ flexDirection: 'row', marginBottom: 15 }}>
+                <TouchableOpacity onPress={() => onEditImage(item)}>
+                    {item.image ? (
+                        <Image source={{ uri: item.image }} style={{ width: 60, height: 60, borderRadius: 8, marginRight: 12 }} />
+                    ) : (
+                        <View style={{ width: 60, height: 60, borderRadius: 8, marginRight: 12, backgroundColor: theme.background === '#121212' ? '#333' : '#f0f0f0', alignItems: 'center', justifyContent: 'center' }}>
+                            <MaterialIcons name="add-a-photo" size={24} color={theme.text === '#e0e0e0' ? '#666' : '#ccc'} />
+                        </View>
+                    )}
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => onOpenDetails(item)} style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <View style={{ flex: 1, marginRight: 10 }}>
                         <Text style={[styles.productName, { color: theme.text }]}>{item.name}</Text>
                         <Text style={{ fontSize: 15, color: theme.text === '#e0e0e0' ? '#aaa' : '#666', fontWeight: '500' }}>
@@ -1063,22 +1074,11 @@ const ProductCard = ({ item, sellItem, addItem, deleteProduct, onOpenDetails, th
                             {displayStock}
                         </Text>
                     </View>
-                </View>
-            </TouchableOpacity>
+                </TouchableOpacity>
+            </View>
 
             {/* Main POS Actions */}
             <View style={{ flexDirection: 'row', gap: 12 }}>
-                <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: displayStock > 0 ? colors.danger : '#e0e0e0', flex: 2 }]}
-                    onPress={() => displayStock > 0 ? sellItem(item.id) : Alert.alert(t.outOfStock, t.outOfStockMsg)}
-                    disabled={displayStock <= 0}
-                    onLongPress={() => displayStock > 0 ? onBulkAction(item, 'sell') : null}
-                    delayLongPress={1000}
-                >
-                    <MaterialIcons name="shopping-cart" size={22} color={displayStock > 0 ? "white" : "#999"} style={{ marginRight: 8 }} />
-                    <Text style={[styles.actionButtonText, { color: displayStock > 0 ? "white" : "#999" }]}>{t.sell}</Text>
-                </TouchableOpacity>
-
                 <TouchableOpacity
                     style={[styles.actionButton, { backgroundColor: colors.primary, flex: 1 }]}
                     onPress={() => addItem(item.id)}
@@ -1087,6 +1087,17 @@ const ProductCard = ({ item, sellItem, addItem, deleteProduct, onOpenDetails, th
                 >
                     <MaterialIcons name="add-box" size={22} color="white" style={{ marginRight: 6 }} />
                     <Text style={styles.actionButtonText}>{t.add}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: displayStock > 0 ? colors.danger : '#e0e0e0', flex: 1 }]}
+                    onPress={() => displayStock > 0 ? sellItem(item.id) : Alert.alert(t.outOfStock, t.outOfStockMsg)}
+                    disabled={displayStock <= 0}
+                    onLongPress={() => displayStock > 0 ? onBulkAction(item, 'sell') : null}
+                    delayLongPress={1000}
+                >
+                    <MaterialIcons name="shopping-cart" size={22} color={displayStock > 0 ? "white" : "#999"} style={{ marginRight: 8 }} />
+                    <Text style={[styles.actionButtonText, { color: displayStock > 0 ? "white" : "#999" }]}>{t.sell}</Text>
                 </TouchableOpacity>
             </View>
         </View>
@@ -1198,8 +1209,9 @@ const AIChatScreen = ({ analytics, aiSettings, setAiSettings, chatMessages, setC
 };
 
 // 2.5 Product Details Modal
-const ProductDetailsModal = ({ visible, onClose, product, salesData, onSaveDetails, theme, language }) => {
+const ProductDetailsModal = ({ visible, onClose, product, salesData, onSaveDetails, theme, language, onEditImage }) => {
     const t = translations[language];
+    const [name, setName] = useState('');
     const [price, setPrice] = useState('');
     const [cost, setCost] = useState('');
     const [supplier, setSupplier] = useState('');
@@ -1209,6 +1221,7 @@ const ProductDetailsModal = ({ visible, onClose, product, salesData, onSaveDetai
 
     useEffect(() => {
         if (product) {
+            setName(product.name || '');
             setPrice(product.price !== undefined ? String(product.price) : '');
             setCost(product.cost !== undefined ? String(product.cost) : '');
             setSupplier(product.supplier || '');
@@ -1233,7 +1246,7 @@ const ProductDetailsModal = ({ visible, onClose, product, salesData, onSaveDetai
         if (expYear && expMonth && expDay) {
             formattedExpiry = `${expYear}-${expMonth.padStart(2, '0')}-${expDay.padStart(2, '0')}`;
         }
-        onSaveDetails(product.id, price, cost, supplier, formattedExpiry);
+        onSaveDetails(product.id, name, price, cost, supplier, formattedExpiry);
         onClose();
     };
 
@@ -1246,7 +1259,27 @@ const ProductDetailsModal = ({ visible, onClose, product, salesData, onSaveDetai
         <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
             <View style={styles.modalOverlay}>
                 <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
-                    <Text style={styles.modalTitle}>{product.name}</Text>
+                    <View style={{ alignItems: 'center', marginBottom: 15 }}>
+                        <TouchableOpacity onPress={() => onEditImage(product)} style={{ position: 'relative' }}>
+                            {product.image ? (
+                                <Image source={{ uri: product.image }} style={{ width: 100, height: 100, borderRadius: 12 }} />
+                            ) : (
+                                <View style={{ width: 100, height: 100, borderRadius: 12, backgroundColor: theme.background, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#ddd' }}>
+                                    <MaterialIcons name="add-a-photo" size={32} color={theme.text === '#e0e0e0' ? '#666' : '#ccc'} />
+                                </View>
+                            )}
+                            <View style={{ position: 'absolute', bottom: -5, right: -5, backgroundColor: colors.primary, borderRadius: 20, padding: 6, elevation: 2 }}>
+                                <MaterialIcons name="edit" size={14} color="white" />
+                            </View>
+                        </TouchableOpacity>
+                    </View>
+                    
+                    <Text style={{ marginBottom: 5, fontWeight: 'bold', color: theme.text }}>{t.productName}</Text>
+                    <TextInput 
+                        style={[styles.input, { marginBottom: 15, backgroundColor: theme.background, color: theme.text, borderColor: theme.background === '#121212' ? '#333' : '#ccc', fontWeight: 'bold' }]} 
+                        value={name} 
+                        onChangeText={setName} 
+                    />
                     
                     <Text style={{ marginBottom: 5, fontWeight: 'bold', color: theme.text }}>{t.editSellingPrice}</Text>
                     <TextInput 
@@ -1446,6 +1479,7 @@ const StatDetailsModal = ({ visible, onClose, type, analytics, theme, language }
         color: (opacity = 1) => type === 'expenses' ? `rgba(220, 53, 69, ${opacity})` : `rgba(34, 139, 34, ${opacity})`,
         labelColor: (opacity = 1) => theme.text === '#e0e0e0' ? `rgba(255,255,255,${opacity})` : `rgba(0,0,0,${opacity})`,
         barPercentage: 0.7,
+        propsForLabels: { fontSize: 10 },
     };
 
     const handleDataPointClick = ({ index, value }) => {
@@ -1517,7 +1551,7 @@ const StatDetailsModal = ({ visible, onClose, type, analytics, theme, language }
                     ) : (
                         <ScrollView horizontal>
                             {type === 'topItem' ? (
-                                <BarChart data={chartData} width={screenWidth + 40} height={250} chartConfig={ChartConfig} yAxisLabel="" yAxisSuffix="" fromZero showValuesOnTopOfBars verticalLabelRotation={30} />
+                                <BarChart data={chartData} width={screenWidth + 40} height={250} chartConfig={ChartConfig} yAxisLabel="" yAxisSuffix="" fromZero showValuesOnTopOfBars verticalLabelRotation={0} />
                             ) : (
                                 <View>
                                     <LineChart 
@@ -1863,7 +1897,7 @@ const AnalyticsScreen = ({ analytics, salesHistory, profitHistory, aiSettings, t
                                     <Text style={{ fontWeight: 'bold', color: theme.text, maxWidth: 200 }} numberOfLines={1}>{item.description}</Text>
                                     <Text style={{ fontSize: 12, color: theme.text === '#e0e0e0' ? '#aaa' : '#888' }}>{new Date(item.date).toLocaleDateString()} {new Date(item.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</Text>
                                 </View>
-                                <Text style={{ fontWeight: 'bold', color: item.type === 'income' ? colors.primary : colors.danger }}>{item.type === 'income' ? '+' : ''}₱{Math.abs(item.amount).toFixed(2)}</Text>
+                                <Text style={{ fontWeight: 'bold', color: item.type === 'income' ? colors.primary : colors.danger }}>{item.type === 'income' ? '+' : '-'}₱{Math.abs(item.amount).toFixed(2)}</Text>
                             </View>
                         )}
                         ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: theme.background === '#121212' ? '#333' : '#eee' }} />}
@@ -1959,7 +1993,8 @@ const AddProductScreen = ({
     expenseAmount, setExpenseAmount,
     addExpense,
     theme,
-    language
+    language,
+    newProductImage, pickImage
 }) => {
     const t = translations[language];
     const [mode, setMode] = useState('product'); // 'product' | 'expense'
@@ -1985,11 +2020,20 @@ const AddProductScreen = ({
             <View style={[styles.sectionCard, { marginHorizontal: 0, padding: 20, backgroundColor: theme.card }]}>
                 {mode === 'product' ? (
                     <View>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
-                            <View style={{ backgroundColor: colors.primary + '15', padding: 10, borderRadius: 50, marginRight: 10 }}>
-                                <MaterialIcons name="inventory" size={24} color={colors.primary} />
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20, justifyContent: 'space-between' }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <View style={{ backgroundColor: colors.primary + '15', padding: 10, borderRadius: 50, marginRight: 10 }}>
+                                    <MaterialIcons name="inventory" size={24} color={colors.primary} />
+                                </View>
+                                <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.text }}>{t.productDetails}</Text>
                             </View>
-                            <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.text }}>{t.productDetails}</Text>
+                            <TouchableOpacity onPress={pickImage}>
+                                {newProductImage ? (
+                                    <Image source={{ uri: newProductImage }} style={{ width: 50, height: 50, borderRadius: 8 }} />
+                                ) : (
+                                    <MaterialIcons name="add-a-photo" size={28} color={colors.primary} />
+                                )}
+                            </TouchableOpacity>
                         </View>
 
                         <View style={{ marginBottom: 15 }}>
@@ -2196,6 +2240,7 @@ export default function Index() {
     const [newExpYear, setNewExpYear] = useState('');
     const [newExpMonth, setNewExpMonth] = useState('');
     const [newExpDay, setNewExpDay] = useState('');
+    const [newProductImage, setNewProductImage] = useState(null);
 
     // Bulk Action State
     const [bulkAction, setBulkAction] = useState(null); // { item, type }
@@ -2374,6 +2419,38 @@ export default function Index() {
         setRefreshTrigger(prev => prev + 1); // Force Analytics Refresh
     };
 
+    const pickImage = async () => {
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.5,
+        });
+        if (!result.canceled) {
+            setNewProductImage(result.assets[0].uri);
+        }
+    };
+
+    const handleUpdateImage = async (item) => {
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.5,
+        });
+
+        if (!result.canceled) {
+            const newUri = result.assets[0].uri;
+            setItems(prev => prev.map(i => i.id === item.id ? { ...i, image: newUri } : i));
+            if (selectedProduct && selectedProduct.id === item.id) {
+                setSelectedProduct(prev => ({ ...prev, image: newUri }));
+            }
+            if (user) {
+                await updateItemDetailsInCloud(user.uid, item.id, { image: newUri });
+            }
+        }
+    };
+
     const addProduct = async () => {
         if (!user) return;
         const name = newProductName.trim();
@@ -2399,7 +2476,7 @@ export default function Index() {
         }
 
         const newId = doc(collection(db, 'users', user.uid, 'items')).id;
-        const newItem = { id: newId, name, stock, price, cost, supplier, expiryDate };
+        const newItem = { id: newId, name, stock, price, cost, supplier, expiryDate, image: newProductImage };
 
         setItems(prev => [...prev, newItem]);
         setEditStocks(prev => ({ ...prev, [newId]: String(stock) }));
@@ -2411,6 +2488,7 @@ export default function Index() {
         setNewExpYear('');
         setNewExpMonth('');
         setNewExpDay('');
+        setNewProductImage(null);
         setActiveTab('inventory'); // Switch to main list after adding
 
         await saveItemToCloud(user.uid, newItem);
@@ -2477,16 +2555,20 @@ export default function Index() {
     const handleOpenDetails = (item) => setSelectedProduct(item);
     const handleCloseDetails = () => setSelectedProduct(null);
     
-    const handleSaveDetails = async (id, newPrice, newCost, newSupplier, newExpiry) => {
+    const handleSaveDetails = async (id, newName, newPrice, newCost, newSupplier, newExpiry) => {
         if (!user) return;
+        if (!newName.trim()) {
+            Alert.alert(t.validationError, "Product name cannot be empty.");
+            return;
+        }
         const priceNum = parseFloat(newPrice);
         const costNum = parseFloat(newCost);
         if (isNaN(priceNum) || priceNum < 0 || isNaN(costNum) || costNum < 0) {
             Alert.alert(t.invalidInput, t.invalidInputMsg);
             return;
         }
-        setItems(prev => prev.map(item => item.id === id ? { ...item, price: priceNum, cost: costNum, supplier: newSupplier, expiryDate: newExpiry } : item));
-        await updateItemDetailsInCloud(user.uid, id, { price: priceNum, cost: costNum, supplier: newSupplier, expiryDate: newExpiry });
+        setItems(prev => prev.map(item => item.id === id ? { ...item, name: newName, price: priceNum, cost: costNum, supplier: newSupplier, expiryDate: newExpiry } : item));
+        await updateItemDetailsInCloud(user.uid, id, { name: newName, price: priceNum, cost: costNum, supplier: newSupplier, expiryDate: newExpiry });
     };
 
     const handleBulkAction = (item, type) => {
@@ -2575,7 +2657,8 @@ export default function Index() {
                     expenseAmount, setExpenseAmount,
                     addExpense,
                     theme,
-                    language
+                    language,
+                    newProductImage, pickImage
                 }} />;
             case 'analytics':
                 return <AnalyticsScreen analytics={analytics} salesHistory={salesHistory} profitHistory={profitHistory} aiSettings={aiSettings} theme={theme} onResetPress={handleOpenResetModal} language={language} />;
@@ -2614,6 +2697,7 @@ export default function Index() {
                                     theme={theme}
                                     onBulkAction={handleBulkAction}
                                     language={language}
+                                    onEditImage={handleUpdateImage}
                                 />
                             )}
                             ListEmptyComponent={() => (
@@ -2766,6 +2850,7 @@ export default function Index() {
                 onSaveDetails={handleSaveDetails}
                 theme={theme}
                 language={language}
+                onEditImage={handleUpdateImage}
             />
 
             {/* Bulk Action Modal */}
@@ -2777,6 +2862,17 @@ export default function Index() {
                 itemName={bulkAction?.item?.name}
                 qty={bulkQty}
                 setQty={setBulkQty}
+                theme={theme}
+                language={language}
+            />
+
+            {/* Password Confirmation Modal for Reset */}
+            <PasswordConfirmModal
+                visible={isResetModalVisible}
+                onClose={() => setIsResetModalVisible(false)}
+                onConfirm={handleConfirmReset}
+                password={resetPassword}
+                setPassword={setResetPassword}
                 theme={theme}
                 language={language}
             />
